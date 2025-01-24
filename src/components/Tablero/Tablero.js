@@ -1,19 +1,27 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './Tablero.css';
-const tableroInicial = [
-    [5, 3, 0, 0, 7, 0, 0, 0, 0],
-    [6, 0, 0, 1, 9, 5, 0, 0, 0],
-    [0, 9, 8, 0, 0, 0, 0, 6, 0],
-    [8, 0, 0, 0, 6, 0, 0, 0, 3],
-    [4, 0, 0, 8, 0, 3, 0, 0, 1],
-    [7, 0, 0, 0, 2, 0, 0, 0, 6],
-    [0, 6, 0, 0, 0, 0, 2, 8, 0],
-    [0, 0, 0, 4, 1, 9, 0, 0, 5],
-    [0, 0, 0, 0, 8, 0, 0, 7, 9]
-];
 
-function Tablero() {
+function crearTablero(n){
+    const matriz = [];
+    for(let i = 0; i<n; i++){
+        const fila = [];
+        for(let j = 0; j<n; j++){
+            fila.push(0); //inicializa la celda como 0
+        }
+        matriz.push(fila);
+    }
+    return matriz;
+}
+
+
+
+function Tablero({tamaño}) {
+    const tableroInicial = crearTablero(tamaño);
     const [tablero, setTablero] = useState(tableroInicial);
+
+    useEffect(() => {
+        setTablero(crearTablero(tamaño));
+    }, [tamaño]);
 
     const manejarCambio = (filaIndex, colIndex, valor) => {
         const nuevoValor = parseInt(valor, 10);
@@ -34,7 +42,13 @@ function Tablero() {
     };
 
     return (
-        <div className="tablero">
+        <div 
+            className="tablero"
+            style={{
+                gridTemplateColumns: `repeat(${tamaño}, 1fr)`,
+                gridTemplateRows: `repeat(${tamaño}, 1fr)`
+            }}
+        >
             {tablero.map((fila, filaIndex) => (
                 <div key={filaIndex} className="fila">
                     {fila.map((celda, colIndex) => (

@@ -1,12 +1,10 @@
 .tablero {
     display: grid;
-    grid-template-columns: repeat(9, 1fr);  /* 9 columnas */
-    grid-template-rows: repeat(9, 1fr);     /* 9 filas */
     gap: 1px;                               /* Espaciado entre las celdas */
     margin: 20px auto;
     width: 450px;  /* Ajusta el tamaño según necesites */
     height: 450px; /* Ajusta el tamaño según necesites */
-    border: 2px solid black;
+    border: 3px solid black;
 }
 
 .fila {
@@ -38,16 +36,10 @@
     background-color: #f2f2f2;
 }
 
-/* Bordes más gruesos entre los bloques de 3x3 */
-.tablero .fila:nth-child(3n) .celda {
-    border-bottom: 2px solid black;  /* Borde grueso entre bloques */
-}
-
-.tablero .celda:nth-child(3n) {
-    border-right: 2px solid black;  /* Borde grueso entre bloques */
-}
-
-/* Ajustar bordes exteriores */
-.tablero {
-    border: 3px solid black;  /* Bordes gruesos alrededor del tablero */
-}
+/* Media query para ajustar el tamaño de los input según el tamaño de la pantalla */
+@media (max-width: 600px) {
+    .celda input {
+        width: 30px;
+        height: 30px;
+    }
+}   
