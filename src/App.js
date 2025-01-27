@@ -4,21 +4,21 @@ import PedirValor from './components/pedirValor';
 import React, { useState } from 'react';
 
 function App() {
-  const [tamaño, setTamaño] = useState(3);
+  const [size, setSize] = useState(5);
 
-  const actualizarTamaño = (nuevoTamaño) => {
-    setTamaño(parseInt(nuevoTamaño, 10));
+  const actualizarSize = (nuevoSize) => {
+    setSize(parseInt(nuevoSize, 10));
   }
 
   return (
     <div >
       <div style={{ textAlign: 'center'}}>
         <h1>¡Bienvenido!</h1>
-        <PedirValor onActualizar={actualizarTamaño}/>
+        <PedirValor onActualizar={actualizarSize}/>
       </div>
 
       <h1  style={{ textAlign: 'center'}}>Tablero de Toichika</h1>
-      <Tablero tamaño={tamaño}/>
+      <Tablero size={size}/>
    </div>
   );
 }
