@@ -95,7 +95,7 @@ function Tablero({ size }) {
   
     return (
       <div>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
         <div style={{ 
           display: 'grid', 
           gridTemplateColumns: `repeat(${size}, 50px)`, 
