@@ -1,6 +1,157 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './Tablero.css';
 
+
+function Tablero({ size }) {
+  const [tablero, setTablero] = useState([]);
+  const [regiones, setRegiones] = useState([]);
+
+  const generarRegiones = useCallback((size, numFlechas) => {
+    const grid = Array.from({ length: size }, () => 
+      Array(size).fill({ region: -1, flecha: 'VACIO' })
+    );
+    const regiones = [];
+    
+    // Generar posiciones iniciales aleatorias para cada región
+    const posiciones = Array.from({ length: numFlechas }, () => ({
+      x: Math.floor(Math.random() * size),
+      y: Math.floor(Math.random() * size)
+    }));
+    
+    // Expandir regiones
+    posiciones.forEach((pos, index) => {
+      const regionCells = new Set([`${pos.x},${pos.y}`]);
+      const crecimiento = Math.floor((size * size) / numFlechas * 2);
+      
+      for (let i = 0; i < crecimiento; i++) {
+        const temp = Array.from(regionCells);
+        const celda = temp[Math.floor(Math.random() * temp.length)].split(',').map(Number);
+        
+        // Obtener vecinos
+        const vecinos = [
+          [celda[0] - 1, celda[1]],
+          [celda[0] + 1, celda[1]],
+          [celda[0], celda[1] - 1],
+          [celda[0], celda[1] + 1]
+        ].filter(([x, y]) => 
+          x >= 0 && x < size && 
+          y >= 0 && y < size && 
+          !regionCells.has(`${x},${y}`)
+        );
+        
+        if (vecinos.length > 0) {
+          const vecino = vecinos[Math.floor(Math.random() * vecinos.length)];
+          regionCells.add(`${vecino[0]},${vecino[1]}`);
+        }
+      }
+      
+      // Marcar región en el grid
+      regionCells.forEach(celda => {
+        const [x, y] = celda.split(',').map(Number);
+        if (grid[x][y].region === -1) {
+          grid[x][y] = { region: index, flecha: 'VACIO' };
+        }
+      });
+      
+      regiones.push(regionCells);
+    });
+    
+    return { grid, regiones };
+  }, []);
+
+  const colocarFlechas = useCallback((grid, regiones) => {
+    const flechas = ['↑', '↓', '←', '→'];
+    const nuevoGrid = [...grid];
+    
+    regiones.forEach((region, index) => {
+      const celdas = Array.from(region);
+      const celdaAleatoria = celdas[Math.floor(Math.random() * celdas.length)].split(',').map(Number);
+      nuevoGrid[celdaAleatoria[0]][celdaAleatoria[1]].flecha = flechas[index % flechas.length];
+    });
+    
+    return nuevoGrid;
+  }, []);
+
+  const crearTablero = useCallback((size, numFlechas) => {
+    const { grid, regiones } = generarRegiones(size, numFlechas);
+    return colocarFlechas(grid, regiones);
+  }, [generarRegiones, colocarFlechas]);
+
+  useEffect(() => {
+    const flechas = ['↑', '↓', '←', '→'];
+    const tableroInicial = crearTablero(size, flechas.length);
+    setTablero(tableroInicial);
+  }, [size, crearTablero]);
+
+  const getBordeEstilo = useCallback((x, y) => {
+    const borders = {
+      borderTop: '3px solid #666',
+      borderRight: '3px solid #666',
+      borderBottom: '3px solid #666',
+      borderLeft: '3px solid #666'
+    };
+    
+    // Verificar vecinos
+    //si x ___ y la region xy del tablero es distinta a la region x-1y
+    if (x > 0 && tablero[x][y]?.region !== tablero[x - 1][y]?.region) {
+      borders.borderTop = '3px solid #000000';
+    }
+    if (x < size - 1 && tablero[x][y]?.region !== tablero[x + 1][y]?.region) {
+      borders.borderBottom = '3px solid #000000';
+    }
+    if (y > 0 && tablero[x][y]?.region !== tablero[x][y - 1]?.region) {
+      borders.borderLeft = '3px solid #000000';
+    }
+    if (y < size - 1 && tablero[x][y]?.region !== tablero[x][y + 1]?.region) {
+      borders.borderRight = '3px solid #000000';
+    }
+
+    if (x === 0 ){
+      borders.borderTop = '3px solid #000000';
+    } else if(x === size - 1) {
+      borders.borderBottom = '3px solid #000000';
+    }
+
+    if (y === 0 ){
+      borders.borderLeft = '3px solid #000000';
+    } else if(y === size - 1) {
+      borders.borderRight = '3px solid #000000';
+    }
+    
+    return borders;
+  }, [tablero, size]);
+
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center' }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${size}, 50px)`,
+        gridTemplateRows: `repeat(${size}, 50px)`
+      }}>
+        {tablero.map((row, x) =>
+          row.map((celda, y) => (
+            <div
+              key={`${x}-${y}`}
+              style={{
+                width: '50px',
+                height: '50px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: `hsl(${celda.region * 60}, 30%, 90%)`,
+                ...getBordeEstilo(x, y)
+              }}
+            >
+              {celda.flecha !== 'VACIO' && celda.flecha}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default Tablero;
 /*
 //Funcion para crear la matriz
 function crearTablero(n){
@@ -17,7 +168,7 @@ function crearTablero(n){
 */
 
 //Funcion para inicializar y crear el tablero
-;
+/*
 
 function Tablero({ size }) {
     const [tablero, setTablero] = useState([]);
@@ -71,7 +222,7 @@ function Tablero({ size }) {
   
         intento++;
       }
-  
+   
       if (intento === maxIntento) {
         console.warn('Se alcanzó el número máximo de intentos al poblar el tablero.');
       }
