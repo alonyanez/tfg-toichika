@@ -1,7 +1,136 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './Tablero.css';
 
+function Tablero({size, onTableroGenerado}){
 
+  const [tablero, setTablero] = useState([]);
+
+  /*
+  [
+   [0],[1],[1],[2],[3],[3],
+   [0],[0],[4],[2],[2],[2],
+   [0],[5],[4],[4],[4],[2],
+   [5],[5],[4],[4],[8],[9],
+   [6],[6],[7],[7],[8],[10],
+   [11],[11],[11],[11],[11],[10]
+  ]
+  */
+  const generarTablero = useCallback(() => {
+    
+    const tableroPredefinido = [
+      [{region: 0}, {region: 1}, {region: 1}, {region: 2}, {region: 3}, {region: 3}],
+      [{region: 0}, {region: 0}, {region: 4}, {region: 2}, {region: 2}, {region: 2}],
+      [{region: 0}, {region: 5}, {region: 4}, {region: 4}, {region: 4}, {region: 2}],
+      [{region: 5}, {region: 5}, {region: 4}, {region: 4}, {region: 8}, {region: 9}],
+      [{region: 6}, {region: 6}, {region: 7}, {region: 7}, {region: 8}, {region: 10}],
+      [{region: 11}, {region: 11}, {region: 11}, {region: 11}, {region: 11}, {region: 10}]
+    ];
+
+    const nuevoTablero = tableroPredefinido.map(row => 
+      row.map(celda => ({
+        region: celda.region,
+        flecha: celda.flecha || 'VACIO'
+      }))
+    );
+
+    setTablero(nuevoTablero);
+    onTableroGenerado(nuevoTablero); // Actualizar el estado padre
+    
+   /* return tableroPredefinido.map(row => 
+      row.map(celda => ({
+        region: celda.region,
+        flecha: celda.flecha || 'VACIO'
+      }))
+    );
+  }, [onTableroGenerado]);
+  */
+
+  return nuevoTablero;
+  }, [onTableroGenerado]); // Añade la dependencia
+
+  useEffect(() => {
+    generarTablero();
+  }, [generarTablero]);
+
+
+  useEffect(() => {
+    const nuevoTablero = generarTablero(size);
+    setTablero(nuevoTablero);
+  }, [generarTablero, size]);
+  
+  const getBordeEstilo = useCallback((x, y) => {
+    const borders = {
+      borderTop: '3px solid #666',
+      borderRight: '3px solid #666',
+      borderBottom: '3px solid #666',
+      borderLeft: '3px solid #666'
+    };
+    
+    // Verificar vecinos
+    //si x es mayor o menor a los limites del tablero y la region xy del tablero es distinta a la region x+/-1 y
+    if (x > 0 && tablero[x][y]?.region !== tablero[x - 1][y]?.region) {
+      borders.borderTop = '3px solid #000000';
+    }
+    if (x < size - 1 && tablero[x][y]?.region !== tablero[x + 1][y]?.region) {
+      borders.borderBottom = '3px solid #000000';
+    }
+
+    //si y es mayor o menor a los limites del tablero y la region xy del tablero es distinta a la region x y+1/-1
+    if (y > 0 && tablero[x][y]?.region !== tablero[x][y - 1]?.region) {
+      borders.borderLeft = '3px solid #000000';
+    }
+    if (y < size - 1 && tablero[x][y]?.region !== tablero[x][y + 1]?.region) {
+      borders.borderRight = '3px solid #000000';
+    }
+
+    if (x === 0 ){
+      borders.borderTop = '3px solid #000000';
+    } else if(x === size - 1) {
+      borders.borderBottom = '3px solid #000000';
+    }
+
+    if (y === 0 ){
+      borders.borderLeft = '3px solid #000000';
+    } else if(y === size - 1) {
+      borders.borderRight = '3px solid #000000';
+    }
+    
+    return borders;
+  }, [tablero, size]);
+
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center' }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${size}, 50px)`,
+        gridTemplateRows: `repeat(${size}, 50px)`
+      }}>
+        {tablero.map((row, x) =>
+          row.map((celda, y) => (
+            <div
+              key={`${x}-${y}`}
+              style={{
+                width: '50px',
+                height: '50px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: `hsl(${celda.region * 40}, 70%, 90%)`,
+                ...getBordeEstilo(x, y)
+              }}
+            >
+              {celda.flecha !== 'VACIO' && celda.flecha}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default Tablero;
+
+/*
 function Tablero({ size }) {
   const [tablero, setTablero] = useState([]);
   const [regiones, setRegiones] = useState([]);
@@ -13,15 +142,15 @@ function Tablero({ size }) {
     const regiones = [];
     
     // Generar posiciones iniciales aleatorias para cada región
-    const posiciones = Array.from({ length: numFlechas }, () => ({
-      x: Math.floor(Math.random() * size),
-      y: Math.floor(Math.random() * size)
+    const posiciones = Array.from({ length: numFlechas },  (_, index) => ({
+      x: Math.min(index, size - 1),
+      y: Math.min(index, size - 1)
     }));
     
     // Expandir regiones
     posiciones.forEach((pos, index) => {
       const regionCells = new Set([`${pos.x},${pos.y}`]);
-      const crecimiento = Math.floor((size * size) / numFlechas * 2);
+      const crecimiento = Math.floor((size * size) / numFlechas);
       
       for (let i = 0; i < crecimiento; i++) {
         const temp = Array.from(regionCells);
@@ -92,13 +221,15 @@ function Tablero({ size }) {
     };
     
     // Verificar vecinos
-    //si x ___ y la region xy del tablero es distinta a la region x-1y
+    //si x es mayor o menor a los limites del tablero y la region xy del tablero es distinta a la region x+/-1 y
     if (x > 0 && tablero[x][y]?.region !== tablero[x - 1][y]?.region) {
       borders.borderTop = '3px solid #000000';
     }
     if (x < size - 1 && tablero[x][y]?.region !== tablero[x + 1][y]?.region) {
       borders.borderBottom = '3px solid #000000';
     }
+
+    //si y es mayor o menor a los limites del tablero y la region xy del tablero es distinta a la region x y+1/-1
     if (y > 0 && tablero[x][y]?.region !== tablero[x][y - 1]?.region) {
       borders.borderLeft = '3px solid #000000';
     }
@@ -152,7 +283,7 @@ function Tablero({ size }) {
 }
 
 export default Tablero;
-/*
+
 //Funcion para crear la matriz
 function crearTablero(n){
     const matriz = [];
