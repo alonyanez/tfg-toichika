@@ -1,79 +1,164 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect} from 'react';
 
 
 // Función para encontrar las áreas en el tablero
+
 const encontrarAreas = (tablero) => {
-    const areas = {};
-    tablero.forEach((fila, i) => {
-      fila.forEach((area, j) => {
-        if (!areas[area]) {
-          areas[area] = [];
-        }
-        areas[area].push([i, j]);
-      });
+  const areas = {};
+  tablero.forEach((fila, i) => {
+    fila.forEach((celda, j) => {
+      const region = celda.region;
+      if (!areas[region]) areas[region] = [];
+      areas[region].push([i, j]);
     });
-    return areas;
-  };
+  });
+  return areas;
+};
+
+const obtenerDireccion = (actual, siguiente) => {
+  const [x1, y1] = actual;
+  const [x2, y2] = siguiente;
   
-  function Resolver({ tablero }) {
-    const [puntos, setPuntos] = useState([]);
+  if (x2 === x1 - 1) return '↑';
+  if (x2 === x1 + 1) return '↓';
+  if (y2 === y1 - 1) return '←';
+  if (y2 === y1 + 1) return '→';
+  return 'VACIO';
+};
+
+const solucionValida = (tableroSolucion, region) => {
+  const celdas = encontrarAreas(tableroSolucion)[region];
+  let current = celdas[0];
+  const visited = new Set();
   
-    useEffect(() => {
-      const inicializarPuntos = () => {
-        const nuevoPuntos = tablero.map(fila => fila.map(() => ['↑', '↓', '←', '→']));
-        return nuevoPuntos;
-      };
-  
-      setPuntos(inicializarPuntos());
-    }, [tablero]);
-  
-    useEffect(() => {
-      const resolverAreas = () => {
-        const nuevoPuntos = [...puntos];
-        const areas = encontrarAreas(tablero);
-        Object.values(areas).forEach(area => {
-          area.forEach((punto, index) => {
-            const [i, j] = punto;
-            const puntoFinalFila = [i, tablero[0].length - 1];
-            const puntoFinalColumna = [tablero.length - 1, j];
-  
-            if (!area.some(p => p[0] === i && p[1] === puntoFinalFila[1])) {
-              const ultimoPuntoFila = area[area.length - 1];
-              if (ultimoPuntoFila[0] + 1 !== tablero.length) {
-                nuevoPuntos[i][j] = nuevoPuntos[i][j].filter(f => f !== '→');
-              }
-            }
-  
-            if (!area.some(p => p[0] === puntoFinalColumna[0] && p[1] === j)) {
-              const ultimoPuntoColumna = area[area.length - 1];
-              if (ultimoPuntoColumna[1] + 1 !== tablero[0].length) {
-                nuevoPuntos[i][j] = nuevoPuntos[i][j].filter(f => f !== '↓');
-              }
-            }
-          });
-        });
-        setPuntos(nuevoPuntos);
-      };
-  
-      resolverAreas();
-    }, [puntos, tablero]);
-  
-    return (
-      <div>
-        {puntos.map((fila, i) => (
-          <div key={i} style={{ display: 'flex' }}>
-            {fila.map((punto, j) => (
-              <div key={j} style={{ margin: '0 10px' }}>
-                {punto.join(', ')}
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-    );
+  while (true) {
+    const [x, y] = current;
+    if (visited.has(`${x},${y}`)) return false; // Ciclo detectado
+    visited.add(`${x},${y}`);
+    
+    const flecha = tableroSolucion[x][y].flecha;
+    if (flecha === 'VACIO') break;
+    
+    switch (flecha) {
+      case '↑': current = [x - 1, y]; break;
+      case '↓': current = [x + 1, y]; break;
+      case '←': current = [x, y - 1]; break;
+      case '→': current = [x, y + 1]; break;
+    }
   }
   
-  export default Resolver;
+  return visited.size === celdas.length;
+};
+
+// Mejorado con generación de caminos válidos
+const resolverRegiones = (tablero) => {
+  const areas = encontrarAreas(tablero);
+  const nuevoTablero = JSON.parse(JSON.stringify(tablero));
+
+  Object.entries(areas).forEach(([region, coordenadas]) => {
+    // Generar camino usando BFS para conexión real
+    const camino = [];
+    const visitados = new Set();
+    const cola = [coordenadas[0]];
+    
+    while (cola.length > 0) {
+      const actual = cola.shift();
+      const [x, y] = actual;
+      
+      if (!visitados.has(`${x},${y}`)) {
+        visitados.add(`${x},${y}`);
+        camino.push(actual);
+        
+        // Obtener vecinos válidos
+        const vecinos = [
+          [x - 1, y], // Arriba
+          [x + 1, y], // Abajo
+          [x, y - 1], // Izquierda
+          [x, y + 1]  // Derecha
+        ].filter(([nx, ny]) => 
+          coordenadas.some(([cx, cy]) => cx === nx && cy === ny) &&
+          !visitados.has(`${nx},${ny}`)
+        );
+        
+        cola.push(...vecinos);
+      }
+    }
+
+    // Asignar flechas
+    camino.forEach(([x, y], index) => {
+      if (index < camino.length - 1) {
+        const direccion = obtenerDireccion([x, y], camino[index + 1]);
+        nuevoTablero[x][y].flecha = direccion;
+      } else {
+        nuevoTablero[x][y].flecha = 'VACIO';
+      }
+    });
+  });
+
+  return nuevoTablero;
+};
+
+function Resolver({ tablero }) {
+  const [solucion, setSolucion] = useState([]);
+  const [intentos, setIntentos] = useState(0);
+
+  useEffect(() => {
+    if (tablero.length > 0) {
+      let solucionGenerada;
+      let valida = false;
+      let maxIntentos = 5;
+      
+      // Intentar hasta encontrar solución válida
+      do {
+        solucionGenerada = resolverRegiones(tablero);
+        const regiones = Object.keys(encontrarAreas(tablero));
+        valida = regiones.every(region => 
+          solucionValida(solucionGenerada, parseInt(region))
+        );
+        setIntentos(prev => prev + 1);
+      } while (!valida && intentos < maxIntentos);
+
+      if (valida) {
+        setSolucion(solucionGenerada);
+      } else {
+        console.error("No se encontró solución válida");
+      }
+    }
+  }, [tablero]);
+
+  return (
+    <div style={{ margin: '20px', padding: '20px', border: '1px solid #ccc' }}>
+      <h3>Solución Generada:</h3>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${tablero[0]?.length || 0}, 50px)`,
+        gap: '2px',
+        justifyContent: 'center'
+      }}>
+        {solucion.map((fila, x) =>
+          fila.map((celda, y) => (
+            <div
+              key={`${x}-${y}`}
+              style={{
+                width: '50px',
+                height: '50px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: `hsl(${celda.region * 40}, 70%, 90%)`,
+                border: '1px solid #666'
+              }}
+            >
+              {celda.flecha !== 'VACIO' && celda.flecha}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default Resolver;
 
 
 /*

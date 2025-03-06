@@ -24,12 +24,9 @@ function App() {
         size={size} 
         onTableroGenerado={setTableroState} // Pasa el callback
       />
-      <Resolver tablero={tableroState}/> 
+      <Resolver tablero={tableroState}
+                onSolucionInvalida={() => alert('¡Solución inválida!')}/> 
       <br/>
-      <Tablero 
-        size={size} 
-        onTableroGenerado={setTableroState} // Pasa el callback
-      />
    </div>
   );
 }

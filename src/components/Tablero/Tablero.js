@@ -29,21 +29,12 @@ function Tablero({size, onTableroGenerado}){
     const nuevoTablero = tableroPredefinido.map(row => 
       row.map(celda => ({
         region: celda.region,
-        flecha: celda.flecha || 'VACIO'
+        flecha: 'VACIO'
       }))
     );
 
     setTablero(nuevoTablero);
     onTableroGenerado(nuevoTablero); // Actualizar el estado padre
-    
-   /* return tableroPredefinido.map(row => 
-      row.map(celda => ({
-        region: celda.region,
-        flecha: celda.flecha || 'VACIO'
-      }))
-    );
-  }, [onTableroGenerado]);
-  */
 
   return nuevoTablero;
   }, [onTableroGenerado]); // Añade la dependencia
