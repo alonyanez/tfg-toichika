@@ -27,6 +27,7 @@ function App() {
       <Resolver tablero={tableroState}
                 onSolucionInvalida={() => alert('¡Solución inválida!')}/> 
       <br/>
+      
    </div>
   );
 }
