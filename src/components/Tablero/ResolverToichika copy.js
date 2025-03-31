@@ -13,31 +13,9 @@ const encontrarAreas = (tablero) => {
     });
   });
   
-  //console.log(areas);
-  return areas;
-};
-
-const caminoLibre = (tablero, inicio, fin) => {
-  const [x1, y1] = inicio;
-  const [x2, y2] = fin;
+  console.log(areas);
   
-  // Horizontal
-  if (x1 === x2) {
-    const startY = Math.min(y1, y2);
-    const endY = Math.max(y1, y2);
-    for (let y = startY + 1; y < endY; y++) {
-      if (tablero[x1][y].flecha !== 'VACIO') return false;
-    }
-  }
-  // Vertical
-  else if (y1 === y2) {
-    const startX = Math.min(x1, x2);
-    const endX = Math.max(x1, x2);
-    for (let x = startX + 1; x < endX; x++) {
-      if (tablero[x][y1].flecha !== 'VACIO') return false;
-    }
-  }
-  return true;
+  return areas;
 };
 
 const obtenerDireccion = (actual, siguiente) => {
@@ -53,57 +31,39 @@ const obtenerDireccion = (actual, siguiente) => {
 
 const solucionValida = (tableroSolucion, region) => {
   const celdas = encontrarAreas(tableroSolucion)[region];
-  console.log(celdas);
   const flechas = celdas.filter(([x, y]) => tableroSolucion[x][y].flecha !== 'VACIO');
-  console.log(flechas, "flechas");
-  if (flechas.length < 1){
-    return false;
-  }else{
-
+  
+  // Si la región ya tenía una flecha predefinida, validar su par
+  if (flechas.length === 1) {
     const [x, y] = flechas[0];
     let tx = x, ty = y;
-    const flecha = tableroSolucion[x][y].flecha;
     let pasos = 0;
-    let camino = [];
-
-    console.log(tableroSolucion, tableroSolucion[0], "Tablero solucion");
+    
     while (true) {
-      switch(flecha) {
+      switch(tableroSolucion[tx][ty].flecha) {
         case '→': ty++; break;
         case '←': ty--; break;
         case '↓': tx++; break;
         case '↑': tx--; break;
         default: return false;
       }
-      camino.push([tx, ty]); // Registrar camino
-
+      
       if (tx < 0 || ty < 0 || tx >= tableroSolucion.length || ty >= tableroSolucion[0].length) return false;
-
-      // Verificar si hay flecha en el camino (antes de llegar al par)
-      if (pasos > 0 && tableroSolucion[tx][ty].flecha !== 'VACIO') return false;
-
+      
       if (tableroSolucion[tx][ty].flecha !== 'VACIO') {
-        // Chequear que todo el camino (excepto extremos) esté vacío
-        const caminoIntermedio = camino.slice(0, -1);
-        const caminoLimpio = caminoIntermedio.every(([cx, cy]) => 
-          tableroSolucion[cx][cy].flecha === 'VACIO'
-        );
-        
         return (
-          caminoLimpio &&
           tableroSolucion[tx][ty].flecha === obtenerDireccion([tx, ty], [x, y]) &&
+          pasos >= 1 &&
           !sonAdyacentes(region.toString(), tableroSolucion[tx][ty].region.toString(), encontrarAreas(tableroSolucion))
         );
       }
-
+      
       pasos++;
-      if (pasos > 100) return false;
+      if (pasos > 100) return false; // Prevenir loops infinitos
     }
-
-    return flechas.length === 0; // Región vacía aún no resuelta
-
   }
   
+  return flechas.length === 0; // Región vacía aún no resuelta
 };
 
 const sonAdyacentes = (regionA, regionB, areas) => {
@@ -121,11 +81,10 @@ const sonAdyacentes = (regionA, regionB, areas) => {
 // Encuentra todos los posibles pares válidos entre regiones
 const encontrarParesValidos = (areas) => {
   const regiones = Object.keys(areas);
-  //console.log(regiones);
   const pares = [];
   
-  for (let i = 0; i < regiones.length; i++) {
-    for (let j = i+1; j < regiones.length; j++) {
+  for (let i = 0; i <= regiones.length; i++) {
+    for (let j = i + 1; j < regiones.length; j++) {
       const regionA = regiones[i];
       const regionB = regiones[j];
       
@@ -134,52 +93,36 @@ const encontrarParesValidos = (areas) => {
       }
     }
   }
-  //console.log(pares, "pares");
   return pares;
 };
 
 // Genera solución válida
 const resolverToichika = (tableroOriginal) => {
   const areas = encontrarAreas(tableroOriginal);
-  const nuevoTablero = JSON.parse(JSON.stringify(tableroOriginal));
-  const regiones = Object.keys(areas);
-
-  // 1. Identificar regiones completamente vacías
-  const regionesVacias = regiones.filter(region => 
-    areas[region].every(([x, y]) => tableroOriginal[x][y].flecha === 'VACIO')
+  const nuevoTablero = JSON.parse(JSON.stringify(tableroOriginal)); // Clona el tablero con flechas existentes
+  const paresValidos = encontrarParesValidos(areas);
+  const regionesDisponibles = new Set(
+    Object.keys(areas).filter(region => 
+      areas[region].every(([x, y]) => nuevoTablero[x][y].flecha === 'VACIO') // Solo regiones sin flechas
+    )
   );
 
-  // 2. Generar todos los pares posibles no adyacentes
-  const paresValidos = [];
-  for (let i = 0; i < regionesVacias.length; i++) {
-    for (let j = i + 1; j < regionesVacias.length; j++) {
-      const regionA = regionesVacias[i];
-      const regionB = regionesVacias[j];
-      if (!sonAdyacentes(regionA, regionB, areas)) {
-        paresValidos.push([regionA, regionB]);
-      }
-    }
-  }
-
-  // 3. Mezclar pares para aleatoriedad
-  paresValidos.sort(() => Math.random() - 0.5);
-
-  // 4. Procesar pares y asignar flechas
-  const regionesAsignadas = new Set();
+  // Asignar flechas a pares respetando las existentes
   paresValidos.forEach(([regionA, regionB]) => {
-    if (regionesAsignadas.has(regionA) || regionesAsignadas.has(regionB)) return;
+    if (!regionesDisponibles.has(regionA) || !regionesDisponibles.has(regionB)) return;
 
+    const celdasA = areas[regionA].filter(([x, y]) => nuevoTablero[x][y].flecha === 'VACIO');
+    const celdasB = areas[regionB].filter(([x, y]) => nuevoTablero[x][y].flecha === 'VACIO');
+
+    // Encontrar pares alineados en celdas vacías
     const posiblesPares = [];
-    areas[regionA].forEach(([x1, y1]) => {
-      areas[regionB].forEach(([x2, y2]) => {
-        if ((x1 === x2 && Math.abs(y1 - y2) > 1) || (y1 === y2 && Math.abs(x1 - x2) > 1)) {
-          if (caminoLibre(nuevoTablero, [x1, y1], [x2, y2])) {
-            posiblesPares.push({
-              tipo: x1 === x2 ? 'horizontal' : 'vertical',
-              c1: [x1, y1],
-              c2: [x2, y2]
-            });
-          }
+    celdasA.forEach(([x1, y1]) => {
+      celdasB.forEach(([x2, y2]) => {
+        if (x1 === x2 && Math.abs(y1 - y2) > 1) {
+          posiblesPares.push({tipo: 'horizontal', c1: [x1, y1], c2: [x2, y2]});
+        }
+        if (y1 === y2 && Math.abs(x1 - x2) > 1) {
+          posiblesPares.push({tipo: 'vertical', c1: [x1, y1], c2: [x2, y2]});
         }
       });
     });
@@ -187,7 +130,7 @@ const resolverToichika = (tableroOriginal) => {
     if (posiblesPares.length === 0) return;
 
     const par = posiblesPares[Math.floor(Math.random() * posiblesPares.length)];
-    // Asignar flechas
+    // Asignar flechas solo en celdas vacías
     if (par.tipo === 'horizontal') {
       nuevoTablero[par.c1[0]][par.c1[1]].flecha = par.c1[1] < par.c2[1] ? '→' : '←';
       nuevoTablero[par.c2[0]][par.c2[1]].flecha = par.c1[1] < par.c2[1] ? '←' : '→';
@@ -196,18 +139,8 @@ const resolverToichika = (tableroOriginal) => {
       nuevoTablero[par.c2[0]][par.c2[1]].flecha = par.c1[0] < par.c2[0] ? '↑' : '↓';
     }
 
-    regionesAsignadas.add(regionA);
-    regionesAsignadas.add(regionB);
-  });
-
-  // 5. Manejar regiones no emparejadas (huérfanas)
-  regionesVacias.forEach(region => {
-    if (!regionesAsignadas.has(region)) {
-      // Asignar flecha temporal y buscar pareja
-      const celdas = areas[region];
-      const [x, y] = celdas[Math.floor(Math.random() * celdas.length)];
-      nuevoTablero[x][y].flecha = '→'; // Flecha temporal
-    }
+    regionesDisponibles.delete(regionA);
+    regionesDisponibles.delete(regionB);
   });
 
   return nuevoTablero;
@@ -225,7 +158,7 @@ function Resolver({ tablero }) {
       let mejorPuntaje = -Infinity;
       
       // Ejecutar 100 iteraciones para encontrar la mejor solución
-      for (let i = 0; i < 1000; i++) {
+      for (let i = 0; i < 100000; i++) {
         const solucionGenerada = resolverToichika(tablero);
         const regiones = Object.keys(encontrarAreas(tablero));
         const valida = regiones.every(region => solucionValida(solucionGenerada, parseInt(region)));
@@ -283,4 +216,7 @@ function Resolver({ tablero }) {
 }
 
 export default Resolver;
+
+
+
 
