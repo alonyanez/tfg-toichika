@@ -2,7 +2,6 @@ import React, { useState, useEffect} from 'react';
 
 
 // Función para encontrar las áreas en el tablero
-
 const encontrarAreas = (tablero) => {
   const areas = {};
   tablero.forEach((fila, i) => {
@@ -17,27 +16,16 @@ const encontrarAreas = (tablero) => {
   return areas;
 };
 
-const caminoLibre = (tablero, inicio, fin) => {
+const caminoRecto = (tablero, inicio, fin) => {
+  // Verificar que fin sea un array válido
+  if (!Array.isArray(fin)) return false;
+  
   const [x1, y1] = inicio;
   const [x2, y2] = fin;
   
-  // Horizontal
-  if (x1 === x2) {
-    const startY = Math.min(y1, y2);
-    const endY = Math.max(y1, y2);
-    for (let y = startY + 1; y < endY; y++) {
-      if (tablero[x1][y].flecha !== 'VACIO') return false;
-    }
-  }
-  // Vertical
-  else if (y1 === y2) {
-    const startX = Math.min(x1, x2);
-    const endX = Math.max(x1, x2);
-    for (let x = startX + 1; x < endX; x++) {
-      if (tablero[x][y1].flecha !== 'VACIO') return false;
-    }
-  }
-  return true;
+  // Solo verificar caminos rectos y adyacentes
+  if (x1 === x2 && Math.abs(y1 - y2) > 0) return true; // Celdas adyacentes horizontal
+  if (y1 === y2 && Math.abs(x1 - x2) > 0) return true; // Celdas adyacentes vertical
 };
 
 const obtenerDireccion = (actual, siguiente) => {
@@ -65,6 +53,7 @@ const solucionValida = (tableroSolucion, region) => {
     const flecha = tableroSolucion[x][y].flecha;
     let pasos = 0;
     let camino = [];
+    let direccionEsperada = flecha;
 
     console.log(tableroSolucion, tableroSolucion[0], "Tablero solucion");
     while (true) {
@@ -140,14 +129,71 @@ const encontrarParesValidos = (areas) => {
 
 // Genera solución válida
 const resolverToichika = (tableroOriginal) => {
+
   const areas = encontrarAreas(tableroOriginal);
-  const nuevoTablero = JSON.parse(JSON.stringify(tableroOriginal));
   const regiones = Object.keys(areas);
 
-  // 1. Identificar regiones completamente vacías
+  const nuevoTablero = JSON.parse(JSON.stringify(tableroOriginal));
+  const tableroBorrador = JSON.parse(JSON.stringify(tableroOriginal));
+  
+  //Identificar regiones can y sin flecha
   const regionesVacias = regiones.filter(region => 
     areas[region].every(([x, y]) => tableroOriginal[x][y].flecha === 'VACIO')
   );
+
+  //console.log(regionesVacias, "region vacia");
+  //console.log(areas)
+
+  const regionesFlechaArriba = regiones.filter(region => 
+    areas[region].every(([x, y]) => tableroOriginal[x][y].flecha === '↑')
+  );
+
+  //console.log(regionesFlechaArriba, "region flecha arriba");
+
+  const regionesFlechasAbajo = regiones.filter(region => 
+    areas[region].every(([x, y]) => tableroOriginal[x][y].flecha === '↓')
+  );
+
+  const regionesFlechaDer = regiones.filter(region => 
+    areas[region].every(([x, y]) => tableroOriginal[x][y].flecha === '→')
+  );
+
+  const regionesFlechasIzq = regiones.filter(region => 
+    areas[region].every(([x, y]) => tableroOriginal[x][y].flecha === '←')
+  );
+
+  // Rellenar el tablero Borrador con todas las posibles flechas que pueden tener
+  for (let i=0; i<regionesVacias.length; i++) {
+    let area = areas[regionesVacias[i]];
+    for (let j=0; j<area.length; j++) {
+      let posiblesFlechas = [];
+      let punto = area[j];
+      console.log(punto,"punto");
+      
+      if(caminoRecto(tableroOriginal, punto, [tableroBorrador.length-1, punto[1]])){
+        posiblesFlechas.push('↓');
+      } 
+
+      if(caminoRecto(tableroOriginal, punto, [0, punto[1]])){
+        posiblesFlechas.push('↑');
+      } 
+
+      if(caminoRecto(tableroOriginal, punto, [punto[0], 0])){
+        posiblesFlechas.push('←');
+      } 
+
+      if(caminoRecto(tableroOriginal, punto, [punto[0], tableroBorrador.length-1])){
+        posiblesFlechas.push('→');
+      } 
+      
+      tableroBorrador[punto[0]][punto[1]].flecha = posiblesFlechas;
+    }
+  }
+
+  for (let i = 0; i < tableroBorrador.length; i++){
+
+  }
+
 
   // 2. Generar todos los pares posibles no adyacentes
   const paresValidos = [];
@@ -173,7 +219,7 @@ const resolverToichika = (tableroOriginal) => {
     areas[regionA].forEach(([x1, y1]) => {
       areas[regionB].forEach(([x2, y2]) => {
         if ((x1 === x2 && Math.abs(y1 - y2) > 1) || (y1 === y2 && Math.abs(x1 - x2) > 1)) {
-          if (caminoLibre(nuevoTablero, [x1, y1], [x2, y2])) {
+          if (caminoRecto(nuevoTablero, [x1, y1], [x2, y2])) {
             posiblesPares.push({
               tipo: x1 === x2 ? 'horizontal' : 'vertical',
               c1: [x1, y1],
@@ -210,7 +256,7 @@ const resolverToichika = (tableroOriginal) => {
     }
   });
 
-  return nuevoTablero;
+  return tableroBorrador;
 };
 
 // Componente Resolver actualizado
