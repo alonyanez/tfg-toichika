@@ -3,18 +3,7 @@ import './Tablero.css';
 
 function Tablero({size, onTableroGenerado}){
 
-  const [tablero, setTablero] = useState([]);
-
-  /*
-  [
-   [0],[1],[1],[2],[3],[3],
-   [0],[0],[4],[2],[2],[2],
-   [0],[5],[4],[4],[4],[2],
-   [5],[5],[4],[4],[8],[9],
-   [6],[6],[7],[7],[8],[10],
-   [11],[11],[11],[11],[11],[10]
-  ]
-  */
+  const tablero = Array.from({})
   const generarTablero = useCallback(() => {
     if( size !== 6 ){
       console.error("Solo se admite tamaño 6 en este tablero predefinido");
@@ -23,13 +12,23 @@ function Tablero({size, onTableroGenerado}){
     );
     }
 
-    const tableroPredefinido = [
+    /*const tableroPredefinido = [
       [{region: 0}, {region: 1}, {region: 1}, {region: 2}, {region: 3}, {region: 3}],
       [{region: 0}, {region: 0}, {region: 4}, {region: 2}, {region: 2}, {region: 2}],
       [{region: 0}, {region: 5}, {region: 4}, {region: 4}, {region: 4}, {region: 2}],
       [{region: 5}, {region: 5}, {region: 4}, {region: 4}, {region: 8}, {region: 9}],
       [{region: 6}, {region: 6}, {region: 7}, {region: 7}, {region: 8}, {region: 10}],
       [{region: 11}, {region: 11}, {region: 11}, {region: 11}, {region: 11}, {region: 10}]
+    ];
+    */
+   
+    const tableroPredefinido = [
+      [{region: 0}, {region: 0}, {region: 1}, {region: 2}, {region: 2}, {region: 3}],
+      [{region: 0}, {region: 6}, {region: 2}, {region: 2}, {region: 3}, {region: 3}],
+      [{region: 7}, {region: 6}, {region: 8}, {region: 5}, {region: 3}, {region: 4}],
+      [{region: 7}, {region: 6}, {region: 8}, {region: 5}, {region: 4}, {region: 4}],
+      [{region: 7}, {region: 7}, {region: 8}, {region: 9}, {region: 10}, {region: 11}],
+      [{region: 7}, {region: 7}, {region: 8}, {region: 9}, {region: 11}, {region: 11}]
     ];
 
     const nuevoTablero = tableroPredefinido.map(row => 
@@ -40,9 +39,9 @@ function Tablero({size, onTableroGenerado}){
     );
 
     nuevoTablero[0][5].flecha = '↓';
-    //nuevoTablero[1][4].flecha = '←';
-    //nuevoTablero[3][4].flecha = '←';
-    //nuevoTablero[5][2].flecha = '↑';
+    nuevoTablero[1][4].flecha = '←';
+    nuevoTablero[3][4].flecha = '←';
+    nuevoTablero[5][2].flecha = '↑';
 
     setTablero(nuevoTablero);
     onTableroGenerado(nuevoTablero); // Actualizar el estado padre
