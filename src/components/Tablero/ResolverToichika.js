@@ -109,17 +109,27 @@ function esValida(tablero) {
   
 }
 
-const caminoRecto = (tablero, inicio, fin) => {
-  // Verificar que fin sea un array válido
-  if (!Array.isArray(fin)) return false;
-  
-  const [x1, y1] = inicio;
-  const [x2, y2] = fin;
-  
-  // Solo verificar caminos rectos y adyacentes
-  if (x1 === x2 && Math.abs(y1 - y2) > 0) return true; // Celdas adyacentes horizontal
-  if (y1 === y2 && Math.abs(x1 - x2) > 0) return true; // Celdas adyacentes vertical
-};
+function estadoParcialValido(tableroActual, x, y, flechasPorRegion){
+  const f = tableroActual[x][y];
+  if(f || f.flecha === 'VACIO') return true;
+
+  const flecha = { x, y, flecha: f.flecha, region: f.region};
+
+  if (flechasPorRegion.has(f.region)) {
+    return false; // Ya hay una flecha en esta región
+  }
+
+  const objetivo = buscarFlechaEnDireccion(tableroActual, flecha);
+  if (!objetivo) return true;
+
+  if (objetivo.flecha !== direccionOpuesta(flecha, flecha)) return false;
+
+  if (sonAdyacentes(flecha, objetivo)) return false;
+
+  if (!haySeparacionDeRegion(flecha, objetivo, tableroActual)) return false;
+
+  return true;
+}
 
 const encontrarAreas = (tablero) => {
   const areas = {};
@@ -155,34 +165,57 @@ const resolverToichika = (tableroOriginal) => {
 
   let mejorSolucion = null;
 
-  const asignarFlechas = (regionCeldas) => {
-    return regionCeldas.flatMap(([x, y]) => {
-      const direcciones = [];
-      if (x > 0) direcciones.push('↑');
-      if (x < tableroOriginal.length - 1) direcciones.push('↓');
-      if (y > 0) direcciones.push('←');
-      if (y < tableroOriginal[0].length - 1) direcciones.push('→');
-      return direcciones.map(dir => ({ x, y, flecha: dir }));
-    });
+  const asignarFlechas = (regionCeldas, tablero) => {
+    const opciones = [];
+  
+    for (const [x, y] of regionCeldas) {
+      // Saltar si esta celda ya tiene flecha (aunque no debería pasar)
+      if (tablero[x][y].flecha !== 'VACIO') continue;
+  
+      if (x > 0 && tablero[x - 1][y]?.flecha === 'VACIO') {
+        opciones.push({ x, y, flecha: '↑' });
+      }
+      if (x < tablero.length - 1 && tablero[x + 1][y]?.flecha === 'VACIO') {
+        opciones.push({ x, y, flecha: '↓' });
+      }
+      if (y > 0 && tablero[x][y - 1]?.flecha === 'VACIO') {
+        opciones.push({ x, y, flecha: '←' });
+      }
+      if (y < tablero[0].length - 1 && tablero[x][y + 1]?.flecha === 'VACIO') {
+        opciones.push({ x, y, flecha: '→' });
+      }
+    }
+  
+    return opciones;
   };
+
+  const flechasPorRegion = new Map();
 
   function backtracking(profundidad = 0) {
     if (profundidad === regionesVacias.length) {
       if (esValida(tableroActual)) {
         mejorSolucion = JSON.parse(JSON.stringify(tableroActual));
       }
-      return;
+      return mejorSolucion;
     }
 
     const regionId = regionesVacias[profundidad];
     const celdas = areas[regionId];
-    const opciones = asignarFlechas(celdas);
+    const opciones = asignarFlechas(celdas, tableroActual);
 
     for (const { x, y, flecha } of opciones) {
+      if (flechasPorRegion.has(regionId)) continue;
+
       tableroActual[x][y].flecha = flecha;
-      backtracking(profundidad + 1);
-      if (mejorSolucion) return; // detener si ya encontró una solución
+      flechasPorRegion.set(regionId, { x, y, flecha });
+    
+      if (estadoParcialValido(tableroActual, x, y, flechasPorRegion)) {
+        backtracking(profundidad + 1);
+        if (mejorSolucion) return; // detener si encontró solución
+      }
+    
       tableroActual[x][y].flecha = 'VACIO';
+      flechasPorRegion.delete(regionId);
     }
 
   }
@@ -200,10 +233,10 @@ function Resolver({ tablero }) {
   
     const generarSolucionValida = () => {
       let mejorSolucion = null;
-      let mejorPuntaje = -Infinity;
+      //let mejorPuntaje = -Infinity;
       
       // Ejecutar 100 iteraciones para encontrar la mejor solución
-      for (let i = 0; i < 10; i++) {
+      //for (let i = 0; i < 10; i++) {
         const solucionGenerada = resolverToichika(tablero);
         const regiones = Object.keys(encontrarAreas(tablero));
         const valida = regiones.every(region => esValida(solucionGenerada, parseInt(region)));
@@ -211,15 +244,15 @@ function Resolver({ tablero }) {
         if (valida) return solucionGenerada;
         
         // Calcular puntaje de solución parcial
-        const puntaje = regiones.filter(region => 
-          esValida(solucionGenerada, parseInt(region))
-        ).length;
+        //const puntaje = regiones.filter(region => 
+        //  esValida(solucionGenerada, parseInt(region))
+        //).length;
         
-        if (puntaje > mejorPuntaje) {
-          mejorPuntaje = puntaje;
-          mejorSolucion = solucionGenerada;
-        }
-      }
+        //if (puntaje > mejorPuntaje) {
+        //  mejorPuntaje = puntaje;
+        mejorSolucion = solucionGenerada;
+        //}
+      //}
       
       return mejorSolucion;
     };

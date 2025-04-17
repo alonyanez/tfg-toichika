@@ -20,8 +20,16 @@ function Tablero({size, onTableroGenerado}){
       [{region: 6}, {region: 6}, {region: 7}, {region: 7}, {region: 8}, {region: 10}],
       [{region: 11}, {region: 11}, {region: 11}, {region: 11}, {region: 11}, {region: 10}]
     ];
-    */
-   
+    
+    const tableroPredefinido = [
+      [{region: 0}, {region: 0}, {region: 0}, {region: 0}, {region: 0}, {region: 1}],
+      [{region: 3}, {region: 4}, {region: 4}, {region: 4}, {region: 4}, {region: 1}],
+      [{region: 3}, {region: 4}, {region: 5}, {region: 5}, {region: 5}, {region: 1}],
+      [{region: 3}, {region: 6}, {region: 6}, {region: 6}, {region: 6}, {region: 1}],
+      [{region: 3}, {region: 7}, {region: 7}, {region: 7}, {region: 6}, {region: 1}],
+      [{region: 3}, {region: 2}, {region: 2}, {region: 2}, {region: 2}, {region: 2}]
+    ];
+   */
     const tableroPredefinido = [
       [{region: 0}, {region: 0}, {region: 1}, {region: 2}, {region: 2}, {region: 3}],
       [{region: 0}, {region: 6}, {region: 2}, {region: 2}, {region: 3}, {region: 3}],
