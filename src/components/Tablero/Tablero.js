@@ -5,6 +5,32 @@ function Tablero({size, onTableroGenerado}){
 
   const [tablero, setTablero] = useState([]);
 
+  const FLECHAS = ['', '↑', '→', '↓', '←'];
+
+  const obtenerSiguienteFlecha = (actual) => {
+    const index = FLECHAS.indexOf(actual);
+    return FLECHAS[(index + 1) % FLECHAS.length];
+  };
+
+  const manejarClickCelda = (x, y) => {
+    setTablero(prevTablero => {
+      const nuevoTablero = prevTablero.map((fila, i) =>
+        fila.map((celda, j) => {
+          if (i === x && j === y) {
+            return {
+              ...celda,
+              flecha: obtenerSiguienteFlecha(celda.flecha)
+            };
+          }
+          return celda;
+        })
+      );
+
+      //onTableroGenerado(nuevoTablero);
+      return nuevoTablero;
+    });
+  };
+
   /*
   [
    [0],[1],[1],[2],[3],[3],
@@ -44,21 +70,17 @@ function Tablero({size, onTableroGenerado}){
     //nuevoTablero[3][4].flecha = '←';
     //nuevoTablero[5][2].flecha = '↑';
 
-    setTablero(nuevoTablero);
-    onTableroGenerado(nuevoTablero); // Actualizar el estado padre
+    //setTablero(nuevoTablero);
+    //onTableroGenerado(nuevoTablero); // Actualizar el estado padre
 
   return nuevoTablero;
-  }, [size, onTableroGenerado]); // Añade la dependencia
+  }, [size]); // Añade la dependencia
 
   useEffect(() => {
-    generarTablero();
-  }, [generarTablero]);
-
-
-  useEffect(() => {
-    const nuevoTablero = generarTablero(size);
+    const nuevoTablero = generarTablero();
     setTablero(nuevoTablero);
-  }, [generarTablero, size]);
+    onTableroGenerado(nuevoTablero);
+  }, [generarTablero, onTableroGenerado]);
   
   const getBordeEstilo = useCallback((x, y) => {
     const borders = {
@@ -111,7 +133,9 @@ function Tablero({size, onTableroGenerado}){
           row.map((celda, y) => (
             <div
               key={`${x}-${y}`}
+              onClick={() => manejarClickCelda(x, y)}
               style={{
+                cursor: 'pointer',
                 width: '50px',
                 height: '50px',
                 display: 'flex',
@@ -121,7 +145,7 @@ function Tablero({size, onTableroGenerado}){
                 ...getBordeEstilo(x, y)
               }}
             >
-              {celda.flecha !== 'VACIO' && celda.flecha}
+              {celda.flecha}
             </div>
           ))
         )}

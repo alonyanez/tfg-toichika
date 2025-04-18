@@ -7,10 +7,25 @@ import React, { useState } from 'react';
 function App() {
   const [size, setSize] = useState(6);
   const [tableroState, setTableroState] = useState([]);
+  const [solucionState, setSolucionState] = useState([]);
 
   const actualizarSize = (nuevoSize) => {
     setSize(parseInt(nuevoSize, 10));
   }
+
+  const comprobarSolucion = () => {
+    const iguales = tableroState.every((fila, i) =>
+      fila.every((celda, j) =>
+        celda.flecha === solucionState[i]?.[j]?.flecha
+      )
+    );
+  
+    if (iguales) {
+      console.log("¡Está resuelto!");
+    } else {
+      console.log("Aún no está resuelto");
+    }
+  };
 
   return (
     <div >
@@ -24,8 +39,14 @@ function App() {
         size={size} 
         onTableroGenerado={setTableroState} // Pasa el callback
       />
-      <Resolver tablero={tableroState}
-                onSolucionInvalida={() => alert('¡Solución inválida!')}/> 
+
+      <button style={{ textAlign: 'center'}} onClick={comprobarSolucion}>Comprobar Solución</button>
+
+      <Resolver 
+        tablero={tableroState}
+        onSolucionInvalida={() => alert('¡Solución inválida!')}
+        onSolucionGenerada={setSolucionState}
+      />
       <br/>
       
    </div>

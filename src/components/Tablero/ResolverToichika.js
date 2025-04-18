@@ -152,114 +152,96 @@ const encontrarAreas = (tablero) => {
 };
 
 // Genera solución válida
-const resolverToichika = (tableroOriginal) => {
-  const areas = encontrarAreas(tableroOriginal);
+function Resolver({ tablero, onSolucionInvalida, onSolucionGenerada }) {
+  const resolverToichika = (tableroOriginal) => {
+    const areas = encontrarAreas(tableroOriginal);
 
-  const regionesVacias = Object.keys(areas).filter(region => 
-    areas[region].every(([x, y]) => tableroOriginal[x][y].flecha === 'VACIO')
-  ).sort((a, b) => areas[a].length - areas[b].length);
+    const regionesVacias = Object.keys(areas).filter(region => 
+      areas[region].every(([x, y]) => tableroOriginal[x][y].flecha === 'VACIO')
+    ).sort((a, b) => areas[a].length - areas[b].length);
 
-  //const tableroBorrador = JSON.parse(JSON.stringify(tableroOriginal));
-  const tableroActual = tableroOriginal.map(
-      fila => fila.map(celda => ({ ...celda })));
+    //const tableroBorrador = JSON.parse(JSON.stringify(tableroOriginal));
+    const tableroActual = tableroOriginal.map(
+        fila => fila.map(celda => ({ ...celda })));
 
-  let mejorSolucion = null;
+    let mejorSolucion = null;
 
-  const asignarFlechas = (regionCeldas, tablero) => {
-    const opciones = [];
-  
-    for (const [x, y] of regionCeldas) {
-      // Saltar si esta celda ya tiene flecha (aunque no debería pasar)
-      if (tablero[x][y].flecha !== 'VACIO') continue;
-  
-      if (x > 0 && tablero[x - 1][y]?.flecha === 'VACIO') {
-        opciones.push({ x, y, flecha: '↑' });
+    const asignarFlechas = (regionCeldas, tablero) => {
+      const opciones = [];
+    
+      for (const [x, y] of regionCeldas) {
+        // Saltar si esta celda ya tiene flecha (aunque no debería pasar)
+        if (tablero[x][y].flecha !== 'VACIO') continue;
+    
+        if (x > 0 && tablero[x - 1][y]?.flecha === 'VACIO') {
+          opciones.push({ x, y, flecha: '↑' });
+        }
+        if (x < tablero.length - 1 && tablero[x + 1][y]?.flecha === 'VACIO') {
+          opciones.push({ x, y, flecha: '↓' });
+        }
+        if (y > 0 && tablero[x][y - 1]?.flecha === 'VACIO') {
+          opciones.push({ x, y, flecha: '←' });
+        }
+        if (y < tablero[0].length - 1 && tablero[x][y + 1]?.flecha === 'VACIO') {
+          opciones.push({ x, y, flecha: '→' });
+        }
       }
-      if (x < tablero.length - 1 && tablero[x + 1][y]?.flecha === 'VACIO') {
-        opciones.push({ x, y, flecha: '↓' });
+    
+      return opciones;
+    };
+
+    const flechasPorRegion = new Map();
+
+    function backtracking(profundidad = 0) {
+      if (profundidad === regionesVacias.length) {
+        if (esValida(tableroActual)) {
+          mejorSolucion = JSON.parse(JSON.stringify(tableroActual));
+        }
+        return mejorSolucion;
       }
-      if (y > 0 && tablero[x][y - 1]?.flecha === 'VACIO') {
-        opciones.push({ x, y, flecha: '←' });
+
+      const regionId = regionesVacias[profundidad];
+      const celdas = areas[regionId];
+      const opciones = asignarFlechas(celdas, tableroActual);
+
+      for (const { x, y, flecha } of opciones) {
+        if (flechasPorRegion.has(regionId)) continue;
+
+        tableroActual[x][y].flecha = flecha;
+        flechasPorRegion.set(regionId, { x, y, flecha });
+      
+        if (estadoParcialValido(tableroActual, x, y, flechasPorRegion)) {
+          backtracking(profundidad + 1);
+          if (mejorSolucion) return; // detener si encontró solución
+        }
+      
+        tableroActual[x][y].flecha = 'VACIO';
+        flechasPorRegion.delete(regionId);
       }
-      if (y < tablero[0].length - 1 && tablero[x][y + 1]?.flecha === 'VACIO') {
-        opciones.push({ x, y, flecha: '→' });
-      }
+
     }
-  
-    return opciones;
+
+    backtracking();
+    return mejorSolucion || tableroOriginal;
   };
 
-  const flechasPorRegion = new Map();
-
-  function backtracking(profundidad = 0) {
-    if (profundidad === regionesVacias.length) {
-      if (esValida(tableroActual)) {
-        mejorSolucion = JSON.parse(JSON.stringify(tableroActual));
-      }
-      return mejorSolucion;
-    }
-
-    const regionId = regionesVacias[profundidad];
-    const celdas = areas[regionId];
-    const opciones = asignarFlechas(celdas, tableroActual);
-
-    for (const { x, y, flecha } of opciones) {
-      if (flechasPorRegion.has(regionId)) continue;
-
-      tableroActual[x][y].flecha = flecha;
-      flechasPorRegion.set(regionId, { x, y, flecha });
-    
-      if (estadoParcialValido(tableroActual, x, y, flechasPorRegion)) {
-        backtracking(profundidad + 1);
-        if (mejorSolucion) return; // detener si encontró solución
-      }
-    
-      tableroActual[x][y].flecha = 'VACIO';
-      flechasPorRegion.delete(regionId);
-    }
-
-  }
-
-  backtracking();
-  return mejorSolucion || tableroOriginal;
-};
-
-// Componente Resolver actualizado
-function Resolver({ tablero }) {
+  // Componente Resolver actualizado
   const [solucion, setSolucion] = useState([]);
 
   useEffect(() => {
     if (tablero.length === 0) return;
-  
-    const generarSolucionValida = () => {
-      let mejorSolucion = null;
-      //let mejorPuntaje = -Infinity;
-      
-      // Ejecutar 100 iteraciones para encontrar la mejor solución
-      //for (let i = 0; i < 10; i++) {
-        const solucionGenerada = resolverToichika(tablero);
-        const regiones = Object.keys(encontrarAreas(tablero));
-        const valida = regiones.every(region => esValida(solucionGenerada, parseInt(region)));
-        
-        if (valida) return solucionGenerada;
-        
-        // Calcular puntaje de solución parcial
-        //const puntaje = regiones.filter(region => 
-        //  esValida(solucionGenerada, parseInt(region))
-        //).length;
-        
-        //if (puntaje > mejorPuntaje) {
-        //  mejorPuntaje = puntaje;
-        mejorSolucion = solucionGenerada;
-        //}
-      //}
-      
-      return mejorSolucion;
-    };
-  
-    const solucion = generarSolucionValida();
-    solucion ? setSolucion(solucion) : console.error("No se encontró solución perfecta");
-  }, [tablero]);
+
+    // Usar resolverToichika aquí para obtener la solución generada
+    const solucionGenerada = resolverToichika(tablero);
+
+    if (solucionGenerada) {
+      setSolucion(solucionGenerada);
+      onSolucionGenerada(solucionGenerada); // Notificas a los componentes padres
+    } else {
+      console.error("No se encontró solución perfecta");
+      onSolucionInvalida();
+    }
+  }, [tablero, onSolucionGenerada, onSolucionInvalida]);
 
   return (
     <div style={{ margin: '20px', padding: '20px', border: '1px solid #ccc' }}>
