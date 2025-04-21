@@ -3,7 +3,43 @@ import './Tablero.css';
 
 function Tablero({size, onTableroGenerado}){
 
-  const tablero = Array.from({})
+  const [tablero, setTablero] = useState([]);
+
+  const FLECHAS = ['VACIO', '↑', '→', '↓', '←'];
+
+  const obtenerSiguienteFlecha = (actual) => {
+    const index = FLECHAS.indexOf(actual);
+    return FLECHAS[(index + 1) % FLECHAS.length];
+  };
+
+  const manejarClickCelda = (x, y) => {
+    setTablero(prevTablero => {
+      const nuevoTablero = prevTablero.map((fila, i) =>
+        fila.map((celda, j) => {
+          if (i === x && j === y) {
+            return {
+              ...celda,
+              flecha: obtenerSiguienteFlecha(celda.flecha)
+            };
+          }
+          return celda;
+        })
+      );
+      onTableroGenerado(nuevoTablero); // Opcional: si quieres notificar al padre
+      return nuevoTablero;
+    });
+  };
+
+  /*
+  [
+   [0],[1],[1],[2],[3],[3],
+   [0],[0],[4],[2],[2],[2],
+   [0],[5],[4],[4],[4],[2],
+   [5],[5],[4],[4],[8],[9],
+   [6],[6],[7],[7],[8],[10],
+   [11],[11],[11],[11],[11],[10]
+  ]
+  */
   const generarTablero = useCallback(() => {
     if( size !== 6 ){
       console.error("Solo se admite tamaño 6 en este tablero predefinido");
@@ -12,15 +48,6 @@ function Tablero({size, onTableroGenerado}){
     );
     }
 
-    /*const tableroPredefinido = [
-      [{region: 0}, {region: 1}, {region: 1}, {region: 2}, {region: 3}, {region: 3}],
-      [{region: 0}, {region: 0}, {region: 4}, {region: 2}, {region: 2}, {region: 2}],
-      [{region: 0}, {region: 5}, {region: 4}, {region: 4}, {region: 4}, {region: 2}],
-      [{region: 5}, {region: 5}, {region: 4}, {region: 4}, {region: 8}, {region: 9}],
-      [{region: 6}, {region: 6}, {region: 7}, {region: 7}, {region: 8}, {region: 10}],
-      [{region: 11}, {region: 11}, {region: 11}, {region: 11}, {region: 11}, {region: 10}]
-    ];
-    
     const tableroPredefinido = [
       [{region: 0}, {region: 0}, {region: 0}, {region: 0}, {region: 0}, {region: 1}],
       [{region: 3}, {region: 4}, {region: 4}, {region: 4}, {region: 4}, {region: 1}],
@@ -28,15 +55,6 @@ function Tablero({size, onTableroGenerado}){
       [{region: 3}, {region: 6}, {region: 6}, {region: 6}, {region: 6}, {region: 1}],
       [{region: 3}, {region: 7}, {region: 7}, {region: 7}, {region: 6}, {region: 1}],
       [{region: 3}, {region: 2}, {region: 2}, {region: 2}, {region: 2}, {region: 2}]
-    ];
-   */
-    const tableroPredefinido = [
-      [{region: 0}, {region: 0}, {region: 1}, {region: 2}, {region: 2}, {region: 3}],
-      [{region: 0}, {region: 6}, {region: 2}, {region: 2}, {region: 3}, {region: 3}],
-      [{region: 7}, {region: 6}, {region: 8}, {region: 5}, {region: 3}, {region: 4}],
-      [{region: 7}, {region: 6}, {region: 8}, {region: 5}, {region: 4}, {region: 4}],
-      [{region: 7}, {region: 7}, {region: 8}, {region: 9}, {region: 10}, {region: 11}],
-      [{region: 7}, {region: 7}, {region: 8}, {region: 9}, {region: 11}, {region: 11}]
     ];
 
     const nuevoTablero = tableroPredefinido.map(row => 
@@ -46,10 +64,10 @@ function Tablero({size, onTableroGenerado}){
       }))
     );
 
-    nuevoTablero[0][5].flecha = '↓';
-    nuevoTablero[1][4].flecha = '←';
-    nuevoTablero[3][4].flecha = '←';
-    nuevoTablero[5][2].flecha = '↑';
+    //nuevoTablero[0][5].flecha = '↓';
+    //nuevoTablero[1][4].flecha = '←';
+    //nuevoTablero[3][4].flecha = '←';
+    //nuevoTablero[5][2].flecha = '↑';
 
     setTablero(nuevoTablero);
     onTableroGenerado(nuevoTablero); // Actualizar el estado padre
@@ -118,13 +136,15 @@ function Tablero({size, onTableroGenerado}){
           row.map((celda, y) => (
             <div
               key={`${x}-${y}`}
+              onClick={() => manejarClickCelda(x, y)}
               style={{
+                cursor: 'pointer',
                 width: '50px',
                 height: '50px',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                backgroundColor: `hsl(${celda.region * 40}, 70%, 90%)`,
+                backgroundColor: hsl(`${celda.region * 40}`, 70%, 90%),
                 ...getBordeEstilo(x, y)
               }}
             >
@@ -138,4 +158,3 @@ function Tablero({size, onTableroGenerado}){
 }
 
 export default Tablero;
-

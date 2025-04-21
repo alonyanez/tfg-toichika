@@ -2,30 +2,42 @@ import './App.css';
 import Tablero from './components/Tablero/Tablero';
 import Resolver from './components/Tablero/ResolverToichika';
 import PedirValor from './components/pedirValor';
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 
 function App() {
   const [size, setSize] = useState(6);
   const [tableroState, setTableroState] = useState([]);
-  const [solucionState, setSolucionState] = useState([]);
+  //const [solucionState, setSolucionState] = useState([]);
+
+  const memoizedSetTablero = useCallback((nuevoTablero) => {
+    setTableroState(nuevoTablero);
+  }, []);
 
   const actualizarSize = (nuevoSize) => {
     setSize(parseInt(nuevoSize, 10));
   }
 
-  const comprobarSolucion = () => {
+  /*const solucionMemoizada = useMemo(() => {
+    return solucionState;
+  }, [solucionState]);*/
+
+  /*const comprobarSolucion = () => {
+    // Comparamos sólo si hay cambios en las celdas del tablero
     const iguales = tableroState.every((fila, i) =>
       fila.every((celda, j) =>
-        celda.flecha === solucionState[i]?.[j]?.flecha
+        celda.flecha === solucionMemoizada[i]?.[j]?.flecha
       )
     );
-  
+
     if (iguales) {
       console.log("¡Está resuelto!");
     } else {
       console.log("Aún no está resuelto");
     }
   };
+  
+  <button style={{ textAlign: 'center'}} onClick={comprobarSolucion}>Comprobar Solución</button>
+  */
 
   return (
     <div >
@@ -35,17 +47,17 @@ function App() {
       </div>
 
       <h1  style={{ textAlign: 'center'}}>Tablero de Toichika</h1>
-      <Tablero 
-        size={size} 
-        onTableroGenerado={setTableroState} // Pasa el callback
+      <Tablero
+        size={size}
+        onTableroGenerado={memoizedSetTablero}
       />
 
-      <button style={{ textAlign: 'center'}} onClick={comprobarSolucion}>Comprobar Solución</button>
+      
 
       <Resolver 
         tablero={tableroState}
         onSolucionInvalida={() => alert('¡Solución inválida!')}
-        onSolucionGenerada={setSolucionState}
+        //onSolucionGenerada={setSolucionState}
       />
       <br/>
       

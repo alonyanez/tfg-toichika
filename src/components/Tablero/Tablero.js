@@ -1,16 +1,98 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './Tablero.css';
 
-function Tablero({size, onTableroGenerado}){
+const FLECHAS = ['↑', '→', '↓', '←', ''];
 
-  const [tablero, setTablero] = useState([]);
+const tableroPredefinido = [
+  [{region: 0}, {region: 0}, {region: 0}, {region: 0}, {region: 0}, {region: 1}],
+  [{region: 3}, {region: 4}, {region: 4}, {region: 4}, {region: 4}, {region: 1}],
+  [{region: 3}, {region: 4}, {region: 5}, {region: 5}, {region: 5}, {region: 1}],
+  [{region: 3}, {region: 6}, {region: 6}, {region: 6}, {region: 6}, {region: 1}],
+  [{region: 3}, {region: 7}, {region: 7}, {region: 7}, {region: 6}, {region: 1}],
+  [{region: 3}, {region: 2}, {region: 2}, {region: 2}, {region: 2}, {region: 2}]
+];
 
-  const FLECHAS = ['', '↑', '→', '↓', '←'];
+function generarRegionesAleatorias(filas, columnas, cantidadRegiones) {
+  const tablero = Array.from({ length: filas }, () =>
+    Array.from({ length: columnas }, () => ({ region: -1, flecha: '' }))
+  );
 
-  const obtenerSiguienteFlecha = (actual) => {
-    const index = FLECHAS.indexOf(actual);
-    return FLECHAS[(index + 1) % FLECHAS.length];
+  const todasLasCeldas = [];
+  for (let x = 0; x < filas; x++) {
+    for (let y = 0; y < columnas; y++) {
+      todasLasCeldas.push([x, y]);
+    }
+  }
+
+  // Semillas iniciales para cada región
+  const mezclar = (array) => array.sort(() => Math.random() - 0.5);
+  const semillas = mezclar([...todasLasCeldas]).slice(0, cantidadRegiones);
+
+  const regiones = semillas.map(([x, y], i) => ({
+    id: i,
+    celdas: [[x, y]],
+    frontera: [[x, y]]
+  }));
+
+  semillas.forEach(([x, y], i) => {
+    tablero[x][y].region = i;
+  });
+
+  const vecinos = (x, y) => {
+    return [
+      [x - 1, y], [x + 1, y],
+      [x, y - 1], [x, y + 1]
+    ].filter(
+      ([nx, ny]) => nx >= 0 && ny >= 0 && nx < filas && ny < columnas
+    );
   };
+
+  let celdasAsignadas = semillas.length;
+  const totalCeldas = filas * columnas;
+  let intentos = 0;
+
+  while (celdasAsignadas < totalCeldas && intentos < 100000) {
+    for (const region of regiones) {
+      if (region.frontera.length === 0) continue;
+
+      const [x, y] = region.frontera[Math.floor(Math.random() * region.frontera.length)];
+      const adyacentes = vecinos(x, y).filter(
+        ([nx, ny]) => tablero[nx][ny].region === -1
+      );
+
+      if (adyacentes.length > 0) {
+        const [nx, ny] = adyacentes[Math.floor(Math.random() * adyacentes.length)];
+        tablero[nx][ny].region = region.id;
+        region.celdas.push([nx, ny]);
+        region.frontera.push([nx, ny]);
+        celdasAsignadas++;
+      } else {
+        // Quitar de frontera si ya no tiene adyacentes útiles
+        region.frontera = region.frontera.filter(
+          ([fx, fy]) => !(fx === x && fy === y)
+        );
+      }
+
+      intentos++;
+      if (celdasAsignadas >= totalCeldas) break;
+    }
+  }
+
+  if (celdasAsignadas < totalCeldas) {
+    console.warn("No se pudo generar tablero completo. Reintentando...");
+    return generarRegionesAleatorias(filas, columnas, cantidadRegiones); // Reintento seguro
+  }
+
+  return tablero;
+}
+
+const obtenerSiguienteFlecha = (actual) => {
+  const index = FLECHAS.indexOf(actual);
+  return FLECHAS[(index + 1) % FLECHAS.length];
+};
+
+function Tablero({size, onTableroGenerado}){
+  const [tablero, setTablero] = useState([]);
 
   const manejarClickCelda = (x, y) => {
     setTablero(prevTablero => {
@@ -26,102 +108,80 @@ function Tablero({size, onTableroGenerado}){
         })
       );
 
-      //onTableroGenerado(nuevoTablero);
       return nuevoTablero;
     });
   };
 
-  /*
-  [
-   [0],[1],[1],[2],[3],[3],
-   [0],[0],[4],[2],[2],[2],
-   [0],[5],[4],[4],[4],[2],
-   [5],[5],[4],[4],[8],[9],
-   [6],[6],[7],[7],[8],[10],
-   [11],[11],[11],[11],[11],[10]
-  ]
-  */
   const generarTablero = useCallback(() => {
     if( size !== 6 ){
       console.error("Solo se admite tamaño 6 en este tablero predefinido");
       return Array.from({ length: size }, () => 
-      Array.from({ length: size }, () => ({ region: 0, flecha: 'VACIO' }))
-    );
+      Array.from({ length: size }, () => ({ region: 0, flecha: '' })));
     }
-
-    const tableroPredefinido = [
-      [{region: 0}, {region: 0}, {region: 0}, {region: 0}, {region: 0}, {region: 1}],
-      [{region: 3}, {region: 4}, {region: 4}, {region: 4}, {region: 4}, {region: 1}],
-      [{region: 3}, {region: 4}, {region: 5}, {region: 5}, {region: 5}, {region: 1}],
-      [{region: 3}, {region: 6}, {region: 6}, {region: 6}, {region: 6}, {region: 1}],
-      [{region: 3}, {region: 7}, {region: 7}, {region: 7}, {region: 6}, {region: 1}],
-      [{region: 3}, {region: 2}, {region: 2}, {region: 2}, {region: 2}, {region: 2}]
-    ];
-
-    const nuevoTablero = tableroPredefinido.map(row => 
-      row.map(celda => ({
-        region: celda.region,
-        flecha: 'VACIO'
-      }))
-    );
-
-    //nuevoTablero[0][5].flecha = '↓';
-    //nuevoTablero[1][4].flecha = '←';
-    //nuevoTablero[3][4].flecha = '←';
-    //nuevoTablero[5][2].flecha = '↑';
-
-    //setTablero(nuevoTablero);
-    //onTableroGenerado(nuevoTablero); // Actualizar el estado padre
-
-  return nuevoTablero;
+  
+      /*const nuevoTablero = tableroPredefinido.map(row => 
+        row.map(celda => ({
+          region: celda.region,
+          flecha: ''
+        }))
+      );*/
+      
+    const nuevoTablero = generarRegionesAleatorias(size, size, 8); // tamaño = cantidad de regiones
+      
+      //nuevoTablero[0][5].flecha = '↓';
+      //nuevoTablero[1][4].flecha = '←';
+      //nuevoTablero[3][4].flecha = '←';
+      //nuevoTablero[5][2].flecha = '↑';
+  
+    return nuevoTablero;
   }, [size]); // Añade la dependencia
-
+  
   useEffect(() => {
     const nuevoTablero = generarTablero();
     setTablero(nuevoTablero);
-    onTableroGenerado(nuevoTablero);
+    onTableroGenerado(nuevoTablero); 
   }, [generarTablero, onTableroGenerado]);
-  
+ 
   const getBordeEstilo = useCallback((x, y) => {
-    const borders = {
-      borderTop: '3px solid #666',
-      borderRight: '3px solid #666',
-      borderBottom: '3px solid #666',
-      borderLeft: '3px solid #666'
-    };
-    
-    // Verificar vecinos
-    //si x es mayor o menor a los limites del tablero y la region xy del tablero es distinta a la region x+/-1 y
-    if (x > 0 && tablero[x][y]?.region !== tablero[x - 1][y]?.region) {
-      borders.borderTop = '3px solid #000000';
-    }
-    if (x < size - 1 && tablero[x][y]?.region !== tablero[x + 1][y]?.region) {
-      borders.borderBottom = '3px solid #000000';
-    }
-
-    //si y es mayor o menor a los limites del tablero y la region xy del tablero es distinta a la region x y+1/-1
-    if (y > 0 && tablero[x][y]?.region !== tablero[x][y - 1]?.region) {
-      borders.borderLeft = '3px solid #000000';
-    }
-    if (y < size - 1 && tablero[x][y]?.region !== tablero[x][y + 1]?.region) {
-      borders.borderRight = '3px solid #000000';
-    }
-
-    if (x === 0 ){
-      borders.borderTop = '3px solid #000000';
-    } else if(x === size - 1) {
-      borders.borderBottom = '3px solid #000000';
-    }
-
-    if (y === 0 ){
-      borders.borderLeft = '3px solid #000000';
-    } else if(y === size - 1) {
-      borders.borderRight = '3px solid #000000';
-    }
-    
-    return borders;
-  }, [tablero, size]);
-
+      const borders = {
+        borderTop: '3px solid #666',
+        borderRight: '3px solid #666',
+        borderBottom: '3px solid #666',
+        borderLeft: '3px solid #666'
+      };
+      
+      // Verificar vecinos
+      //si x es mayor o menor a los limites del tablero y la region xy del tablero es distinta a la region x+/-1 y
+      if (x > 0 && tablero[x][y]?.region !== tablero[x - 1][y]?.region) {
+        borders.borderTop = '3px solid #000000';
+      }
+      if (x < size - 1 && tablero[x][y]?.region !== tablero[x + 1][y]?.region) {
+        borders.borderBottom = '3px solid #000000';
+      }
+  
+      //si y es mayor o menor a los limites del tablero y la region xy del tablero es distinta a la region x y+1/-1
+      if (y > 0 && tablero[x][y]?.region !== tablero[x][y - 1]?.region) {
+        borders.borderLeft = '3px solid #000000';
+      }
+      if (y < size - 1 && tablero[x][y]?.region !== tablero[x][y + 1]?.region) {
+        borders.borderRight = '3px solid #000000';
+      }
+  
+      if (x === 0 ){
+        borders.borderTop = '3px solid #000000';
+      } else if(x === size - 1) {
+        borders.borderBottom = '3px solid #000000';
+      }
+  
+      if (y === 0 ){
+        borders.borderLeft = '3px solid #000000';
+      } else if(y === size - 1) {
+        borders.borderRight = '3px solid #000000';
+      }
+      
+      return borders;
+    }, [tablero, size]);
+  
   return (
     <div style={{ display: 'flex', justifyContent: 'center' }}>
       <div style={{
@@ -133,7 +193,11 @@ function Tablero({size, onTableroGenerado}){
           row.map((celda, y) => (
             <div
               key={`${x}-${y}`}
-              onClick={() => manejarClickCelda(x, y)}
+              onClick={(e) => manejarClickCelda(x, y, 0)}
+              onContextMenu={(e) => {
+                e.preventDefault(); // prevenir el menú contextual
+                manejarClickCelda(x, y, 2);
+              }}
               style={{
                 cursor: 'pointer',
                 width: '50px',
