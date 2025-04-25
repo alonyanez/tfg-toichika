@@ -2,7 +2,7 @@ import './App.css';
 import Tablero from './components/Tablero/Tablero';
 import Resolver from './components/Tablero/ResolverToichika';
 import PedirValor from './components/pedirValor';
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 
 function App() {
   const [size, setSize] = useState(6);
@@ -43,7 +43,7 @@ function App() {
     <div >
       <div style={{ textAlign: 'center'}}>
         <h1>¡Bienvenido!</h1>
-        <PedirValor onActualizar={actualizarSize}/>
+       <PedirValor onActualizar={actualizarSize}/>
       </div>
 
       <h1  style={{ textAlign: 'center'}}>Tablero de Toichika</h1>
@@ -51,8 +51,6 @@ function App() {
         size={size}
         onTableroGenerado={memoizedSetTablero}
       />
-
-      
 
       <Resolver 
         tablero={tableroState}

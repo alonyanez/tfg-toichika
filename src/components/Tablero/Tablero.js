@@ -3,7 +3,7 @@ import './Tablero.css';
 
 const FLECHAS = ['↑', '→', '↓', '←', ''];
 
-const tableroPredefinido = [
+/*const tableroPredefinido = [
   [{region: 0}, {region: 0}, {region: 0}, {region: 0}, {region: 0}, {region: 1}],
   [{region: 3}, {region: 4}, {region: 4}, {region: 4}, {region: 4}, {region: 1}],
   [{region: 3}, {region: 4}, {region: 5}, {region: 5}, {region: 5}, {region: 1}],
@@ -11,6 +11,7 @@ const tableroPredefinido = [
   [{region: 3}, {region: 7}, {region: 7}, {region: 7}, {region: 6}, {region: 1}],
   [{region: 3}, {region: 2}, {region: 2}, {region: 2}, {region: 2}, {region: 2}]
 ];
+*/
 
 function generarRegionesAleatorias(filas, columnas, cantidadRegiones) {
   const tablero = Array.from({ length: filas }, () =>
@@ -24,13 +25,11 @@ function generarRegionesAleatorias(filas, columnas, cantidadRegiones) {
     }
   }
 
-  // Semillas iniciales para cada región
   const mezclar = (array) => array.sort(() => Math.random() - 0.5);
   const semillas = mezclar([...todasLasCeldas]).slice(0, cantidadRegiones);
 
   const regiones = semillas.map(([x, y], i) => ({
     id: i,
-    celdas: [[x, y]],
     frontera: [[x, y]]
   }));
 
@@ -38,49 +37,51 @@ function generarRegionesAleatorias(filas, columnas, cantidadRegiones) {
     tablero[x][y].region = i;
   });
 
-  const vecinos = (x, y) => {
-    return [
-      [x - 1, y], [x + 1, y],
-      [x, y - 1], [x, y + 1]
-    ].filter(
-      ([nx, ny]) => nx >= 0 && ny >= 0 && nx < filas && ny < columnas
-    );
-  };
+  const vecinos = (x, y) => [
+    [x - 1, y], [x + 1, y],
+    [x, y - 1], [x, y + 1]
+  ].filter(([nx, ny]) => nx >= 0 && ny >= 0 && nx < filas && ny < columnas);
 
   let celdasAsignadas = semillas.length;
   const totalCeldas = filas * columnas;
-  let intentos = 0;
+  let rondasSinProgreso = 0;
 
-  while (celdasAsignadas < totalCeldas && intentos < 100000) {
+  while (celdasAsignadas < totalCeldas && rondasSinProgreso < 5) {
+    let progreso = false;
+
     for (const region of regiones) {
-      if (region.frontera.length === 0) continue;
+      const nuevaFrontera = [];
 
-      const [x, y] = region.frontera[Math.floor(Math.random() * region.frontera.length)];
-      const adyacentes = vecinos(x, y).filter(
-        ([nx, ny]) => tablero[nx][ny].region === -1
-      );
-
-      if (adyacentes.length > 0) {
-        const [nx, ny] = adyacentes[Math.floor(Math.random() * adyacentes.length)];
-        tablero[nx][ny].region = region.id;
-        region.celdas.push([nx, ny]);
-        region.frontera.push([nx, ny]);
-        celdasAsignadas++;
-      } else {
-        // Quitar de frontera si ya no tiene adyacentes útiles
-        region.frontera = region.frontera.filter(
-          ([fx, fy]) => !(fx === x && fy === y)
+      for (const [x, y] of region.frontera) {
+        const candidatos = vecinos(x, y).filter(
+          ([nx, ny]) => tablero[nx][ny].region === -1
         );
+
+        mezclar(candidatos); // Para aleatoriedad
+
+        if (candidatos.length > 0) {
+          const [nx, ny] = candidatos[0];
+          tablero[nx][ny].region = region.id;
+          nuevaFrontera.push([nx, ny]);
+          celdasAsignadas++;
+          progreso = true;
+          if (celdasAsignadas >= totalCeldas) break;
+        }
       }
 
-      intentos++;
-      if (celdasAsignadas >= totalCeldas) break;
+      region.frontera = nuevaFrontera;
+    }
+
+    if (!progreso) {
+      rondasSinProgreso++;
+    } else {
+      rondasSinProgreso = 0;
     }
   }
 
   if (celdasAsignadas < totalCeldas) {
-    console.warn("No se pudo generar tablero completo. Reintentando...");
-    return generarRegionesAleatorias(filas, columnas, cantidadRegiones); // Reintento seguro
+    console.warn("No se pudo completar el tablero, reintentando...");
+    return generarRegionesAleatorias(filas, columnas, cantidadRegiones);
   }
 
   return tablero;

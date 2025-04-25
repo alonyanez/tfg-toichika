@@ -23,8 +23,34 @@ function buscarFlechaEnDireccion(tablero, f) {
   return null;
 }
 
+function sonAdyacentes(f1, f2) {
+  const dx = Math.abs(f1.x - f2.x);
+  const dy = Math.abs(f1.y - f2.y);
+  return (dx + dy === 1);
+}
+
+
 function direccionOpuesta(flecha) {
   return { '↑': '↓', '↓': '↑', '←': '→', '→': '←' }[flecha];
+}
+function esAdyacente(region, regionF, tablero, x, y) {
+  const direcciones = [
+    [-1, 0], // Arriba
+    [1, 0],  // Abajo
+    [0, -1], // Izquierda
+    [0, 1],  // Derecha
+  ];
+
+  for (let [dx, dy] of direcciones) {
+    const nx = x + dx;
+    const ny = y + dy;
+    if (nx >= 0 && ny >= 0 && nx < tablero.length && ny < tablero[nx].length) {
+      if (tablero[nx][ny].region === regionF) {
+        return true; // Si alguna celda adyacente es de la región de f1 o f2
+      }
+    }
+  }
+  return false;
 }
 
 function haySeparacionDeRegion(f1, f2, tablero) {
@@ -43,7 +69,9 @@ function haySeparacionDeRegion(f1, f2, tablero) {
 
     // Si encontramos una región diferente, marcamos
     if (celda.region !== f1.region) {
-      hayRegionDiferente = true;
+      if (!esAdyacente(celda.region, f1.region, tablero, x, y)) {
+        hayRegionDiferente = true;
+      }
     }
 
     x += dx;
@@ -51,12 +79,6 @@ function haySeparacionDeRegion(f1, f2, tablero) {
   }
 
   return hayRegionDiferente;
-}
-
-function sonAdyacentes(f1, f2) {
-  const dx = Math.abs(f1.x - f2.x);
-  const dy = Math.abs(f1.y - f2.y);
-  return (dx + dy === 1);
 }
 
 function recolectarFlechas(tablero) {
@@ -110,27 +132,22 @@ function esValida(tablero) {
 }
 
 function estadoParcialValido(tableroActual, x, y, flechasPorRegion){
-  const f = tableroActual[x][y];
-  if(f || f.flecha === '') return true;
+  const celda = tableroActual[x][y];
+  const flecha = { x, y, flecha: celda.flecha, region: celda.region };
 
-  const flecha = { x, y, flecha: f.flecha, region: f.region};
-
-  if (flechasPorRegion.has(f.region)) {
-    return false; // Ya hay una flecha en esta región
-  }
+  // Ya hay flecha en la región
+  if (flechasPorRegion.has(celda.region)) return false;
 
   const objetivo = buscarFlechaEnDireccion(tableroActual, flecha);
-  if (!objetivo) return true;
+  if (!objetivo) return true; // aún no hay pareja, puede ser válida
 
-  if (objetivo.flecha !== direccionOpuesta(flecha, flecha)) return false;
-
+  // Si encontramos una flecha: debe ser opuesta, no adyacente, con región diferente entremedio
+  if (objetivo.flecha !== direccionOpuesta(flecha.flecha)) return false;
   if (sonAdyacentes(flecha, objetivo)) return false;
-
   if (!haySeparacionDeRegion(flecha, objetivo, tableroActual)) return false;
 
   return true;
 }
-
 const encontrarAreas = (tablero) => {
   const areas = {};
   
@@ -205,14 +222,22 @@ function Resolver({ tablero, onSolucionInvalida }) {
       const opciones = asignarFlechas(celdas, tableroActual);
 
       for (const { x, y, flecha } of opciones) {
-        if (flechasPorRegion.has(regionId)) continue;
+        //if (flechasPorRegion.has(regionId)) continue;
 
         tableroActual[x][y].flecha = flecha;
+        //const objetivo = buscarFlechaEnDireccion(tableroActual, { x, y, flecha });
+        //if (objetivo) {
+          //if (objetivo.flecha !== direccionOpuesta(flecha)) continue;
+          //if (sonAdyacentes({ x, y }, objetivo)) continue;
+          //if (!haySeparacionDeRegion({ x, y, flecha, region: tableroActual[x][y].region }, objetivo, tableroActual)) continue;
+        //}
         flechasPorRegion.set(regionId, { x, y, flecha });
+
+        
       
         if (estadoParcialValido(tableroActual, x, y, flechasPorRegion)) {
           backtracking(profundidad + 1);
-          if (mejorSolucion) return; // detener si encontró solución
+          if (mejorSolucion) continue; // detener si encontró solución
         }
       
         tableroActual[x][y].flecha = '';
@@ -230,22 +255,28 @@ function Resolver({ tablero, onSolucionInvalida }) {
 
   useEffect(() => {
     if (tablero.length === 0) return;
-
-    // Usar resolverToichika aquí para obtener la solución generada
-    const solucionGenerada = resolverToichika(tablero);
-
-    if (solucionGenerada) {
+  
+    let intentos = 0;
+    const maxIntentos = 2;
+    let solucionGenerada = null;
+  
+    while (intentos < maxIntentos) {
+      solucionGenerada = resolverToichika(tablero);
+      if (esValida(solucionGenerada)) break;
+      intentos++;
+    }
+  
+    if (esValida(solucionGenerada)) {
       setSolucion(solucionGenerada);
-      //onSolucionGenerada(solucionGenerada); // Notificas a los componentes padres
     } else {
-      console.error("No se encontró solución perfecta");
+      console.error("No se encontró solución válida tras múltiples intentos");
       onSolucionInvalida();
     }
   }, [tablero, onSolucionInvalida]);
 
   return (
     <div style={{ margin: '20px', padding: '20px', border: '1px solid #ccc' }}>
-      <h3>Solución Generada:</h3>
+      <h3>Solución Generada Propuesta:</h3>
       <div style={{
         display: 'grid',
         gridTemplateColumns: `repeat(${tablero[0]?.length || 0}, 50px)`,
