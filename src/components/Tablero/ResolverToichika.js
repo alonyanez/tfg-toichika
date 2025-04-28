@@ -1,5 +1,6 @@
-import React, { useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 
+// ——— Helpers Toichika ———
 function buscarFlechaEnDireccion(tablero, f) {
   let { x, y, flecha } = f;
   let dx = 0, dy = 0;
@@ -7,297 +8,208 @@ function buscarFlechaEnDireccion(tablero, f) {
   if (flecha === '↓') dx = 1;
   if (flecha === '←') dy = -1;
   if (flecha === '→') dy = 1;
-
-  x += dx;
-  y += dy;
-
-  while (x >= 0 && x < tablero.length && y >= 0 && y < tablero[0].length) {
+  x += dx; y += dy;
+  while (x >= 0 && y >= 0 && x < tablero.length && y < tablero[0].length) {
     const celda = tablero[x][y];
     if (celda.flecha && celda.flecha !== '') {
       return { x, y, flecha: celda.flecha, region: celda.region };
     }
-    x += dx;
-    y += dy;
+    x += dx; y += dy;
   }
-
   return null;
 }
 
 function sonAdyacentes(f1, f2) {
-  const dx = Math.abs(f1.x - f2.x);
-  const dy = Math.abs(f1.y - f2.y);
-  return (dx + dy === 1);
+  return Math.abs(f1.x - f2.x) + Math.abs(f1.y - f2.y) === 1;
 }
-
 
 function direccionOpuesta(flecha) {
   return { '↑': '↓', '↓': '↑', '←': '→', '→': '←' }[flecha];
 }
-function esAdyacente(region, regionF, tablero, x, y) {
-  const direcciones = [
-    [-1, 0], // Arriba
-    [1, 0],  // Abajo
-    [0, -1], // Izquierda
-    [0, 1],  // Derecha
-  ];
 
-  for (let [dx, dy] of direcciones) {
-    const nx = x + dx;
-    const ny = y + dy;
-    if (nx >= 0 && ny >= 0 && nx < tablero.length && ny < tablero[nx].length) {
-      if (tablero[nx][ny].region === regionF) {
-        return true; // Si alguna celda adyacente es de la región de f1 o f2
-      }
-    }
-  }
-  return false;
+function esAdyacente(regionA, regionB, tablero, x, y) {
+  const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+  return dirs.some(([dx,dy]) => {
+    const nx = x+dx, ny = y+dy;
+    return (
+      nx >= 0 && ny >= 0 &&
+      nx < tablero.length && ny < tablero[0].length &&
+      tablero[nx][ny].region === regionB
+    );
+  });
 }
 
 function haySeparacionDeRegion(f1, f2, tablero) {
-  let dx = Math.sign(f2.x - f1.x);
-  let dy = Math.sign(f2.y - f1.y);
-  let x = f1.x + dx;
-  let y = f1.y + dy;
-
-  let hayRegionDiferente = false;
-
+  const dx = Math.sign(f2.x - f1.x);
+  const dy = Math.sign(f2.y - f1.y);
+  let x = f1.x + dx, y = f1.y + dy;
+  let vioDistinta = false;
   while (x !== f2.x || y !== f2.y) {
-    const celda = tablero[x][y];
-
-    // Si hay una flecha, sigue siendo inválido igual
-    if (celda.flecha && celda.flecha !== '') return false;
-
-    // Si encontramos una región diferente, marcamos
-    if (celda.region !== f1.region) {
-      if (!esAdyacente(celda.region, f1.region, tablero, x, y)) {
-        hayRegionDiferente = true;
-      }
+    const cel = tablero[x][y];
+    if (cel.flecha && cel.flecha !== '') return false;
+    if (cel.region !== f1.region && cel.region !== f2.region) {
+      vioDistinta = true;
     }
-
-    x += dx;
-    y += dy;
+    x += dx; y += dy;
   }
-
-  return hayRegionDiferente;
+  return vioDistinta;
 }
 
-function recolectarFlechas(tablero) {
-  const flechas = [];
-  for (let x = 0; x < tablero.length; x++) {
-    for (let y = 0; y < tablero[0].length; y++) {
-      const celda = tablero[x][y];
-      if (celda.flecha && celda.flecha !== '') {
-        flechas.push({ x, y, flecha: celda.flecha, region: celda.region });
-      }
-    }
-  }
-  return flechas;
-}
-
-function agruparFlechasPorRegion(flechas) {
-  const flechasPorRegion = {};
-  for (let f of flechas) {
-    if (flechasPorRegion[f.region]) {
-      return false; // Más de una flecha en una región
-    }
-    flechasPorRegion[f.region] = f;
-  }
-  return flechasPorRegion; 
-}
-
+// ——— Validación global ———
 function esValida(tablero) {
-  const flechas = recolectarFlechas(tablero);
-  
-  const flechasPorRegion = agruparFlechasPorRegion(flechas);
-  if(!flechasPorRegion) return false;
-
-  const yaEmparejadas = new Set();
+  // 1) Recolectar todas las flechas
+  const flechas = [];
+  for (let i = 0; i < tablero.length; i++) {
+    for (let j = 0; j < tablero[0].length; j++) {
+      const cel = tablero[i][j];
+      if (cel.flecha && cel.flecha !== '') {
+        flechas.push({ x: i, y: j, flecha: cel.flecha, region: cel.region });
+      }
+    }
+  }
+  // 2) Una sola flecha por región
+  const usado = new Set();
+  for (let f of flechas) {
+    if (usado.has(f.region)) return false;
+    usado.add(f.region);
+  }
+  // 3) Emparejar cada flecha
+  const emparejadas = new Set();
   for (let f of flechas) {
     const id = `${f.x},${f.y}`;
-    if (yaEmparejadas.has(id)) continue;
-
+    if (emparejadas.has(id)) continue;
     const objetivo = buscarFlechaEnDireccion(tablero, f);
-    if (!objetivo) return false; 
-
+    if (!objetivo) return false;
     if (objetivo.flecha !== direccionOpuesta(f.flecha)) return false;
-    if (!haySeparacionDeRegion(f, objetivo, tablero)) return false;
     if (sonAdyacentes(f, objetivo)) return false;
-
-    yaEmparejadas.add(id);
-    yaEmparejadas.add(`${objetivo.x},${objetivo.y}`);
+    if (!haySeparacionDeRegion(f, objetivo, tablero)) return false;
+    emparejadas.add(id);
+    emparejadas.add(`${objetivo.x},${objetivo.y}`);
   }
-
-  return true;
-  
-}
-
-function estadoParcialValido(tableroActual, x, y, flechasPorRegion){
-  const celda = tableroActual[x][y];
-  const flecha = { x, y, flecha: celda.flecha, region: celda.region };
-
-  // Ya hay flecha en la región
-  if (flechasPorRegion.has(celda.region)) return false;
-
-  const objetivo = buscarFlechaEnDireccion(tableroActual, flecha);
-  if (!objetivo) return true; // aún no hay pareja, puede ser válida
-
-  // Si encontramos una flecha: debe ser opuesta, no adyacente, con región diferente entremedio
-  if (objetivo.flecha !== direccionOpuesta(flecha.flecha)) return false;
-  if (sonAdyacentes(flecha, objetivo)) return false;
-  if (!haySeparacionDeRegion(flecha, objetivo, tableroActual)) return false;
-
   return true;
 }
-const encontrarAreas = (tablero) => {
+
+function encontrarAreas(tablero) {
   const areas = {};
-  
-  // Verificar si el tablero es válido
-  if (!tablero || !Array.isArray(tablero)) return areas;
-
-  tablero.forEach((fila, i) => {
-    // Verificar si la fila es un array válido
-    if (!Array.isArray(fila)) return;
-    
+  tablero.forEach((fila, i) =>
     fila.forEach((celda, j) => {
-      const region = celda?.region ?? 0;
-      if (!areas[region]) areas[region] = [];
-      areas[region].push([i, j]);
-    });
-  });
-  
+      if (!areas[celda.region]) areas[celda.region] = [];
+      areas[celda.region].push([i, j]);
+    })
+  );
   return areas;
-};
+}
 
-// Genera solución válida
+function asignarFlechas(celdas, tablero) {
+  const opts = [];
+  for (const [x, y] of celdas) {
+    if (tablero[x][y].flecha) continue;
+    if (x > 0   && !tablero[x-1][y].flecha) opts.push({ x, y, flecha: '↑' });
+    if (x < tablero.length-1 && !tablero[x+1][y].flecha) opts.push({ x, y, flecha: '↓' });
+    if (y > 0   && !tablero[x][y-1].flecha) opts.push({ x, y, flecha: '←' });
+    if (y < tablero[0].length-1 && !tablero[x][y+1].flecha) opts.push({ x, y, flecha: '→' });
+  }
+  return opts;
+}
+
+function esLocalValido(tablero, x, y) {
+  const region = tablero[x][y].region;
+  const f = { x, y, flecha: tablero[x][y].flecha, region };
+  const vecino = buscarFlechaEnDireccion(tablero, f);
+  if (!vecino) return true;
+  if (vecino.flecha !== direccionOpuesta(f.flecha)) return false;
+  if (sonAdyacentes(f, vecino)) return false;
+  if (!haySeparacionDeRegion(f, vecino, tablero)) return false;
+  return true;
+}
+
+// ——— Componente Resolver ———
 function Resolver({ tablero, onSolucionInvalida }) {
-  const resolverToichika = (tableroOriginal) => {
-    const areas = encontrarAreas(tableroOriginal);
-
-    const regionesVacias = Object.keys(areas).filter(region => 
-      areas[region].every(([x, y]) => tableroOriginal[x][y].flecha === '')
-    ).sort((a, b) => areas[a].length - areas[b].length);
-
-    //const tableroBorrador = JSON.parse(JSON.stringify(tableroOriginal));
-    const tableroActual = tableroOriginal.map(
-        fila => fila.map(celda => ({ ...celda })));
-
-    let mejorSolucion = null;
-
-    const asignarFlechas = (regionCeldas, tablero) => {
-      const opciones = [];
-    
-      for (const [x, y] of regionCeldas) {
-        // Saltar si esta celda ya tiene flecha (aunque no debería pasar)
-        if (tablero[x][y].flecha !== '') continue;
-    
-        if (x > 0 && tablero[x - 1][y]?.flecha === '') {
-          opciones.push({ x, y, flecha: '↑' });
-        }
-        if (x < tablero.length - 1 && tablero[x + 1][y]?.flecha === '') {
-          opciones.push({ x, y, flecha: '↓' });
-        }
-        if (y > 0 && tablero[x][y - 1]?.flecha === '') {
-          opciones.push({ x, y, flecha: '←' });
-        }
-        if (y < tablero[0].length - 1 && tablero[x][y + 1]?.flecha === '') {
-          opciones.push({ x, y, flecha: '→' });
-        }
-      }
-    
-      return opciones;
-    };
-
-    const flechasPorRegion = new Map();
-
-    function backtracking(profundidad = 0) {
-      if (profundidad === regionesVacias.length) {
-        if (esValida(tableroActual)) {
-          mejorSolucion = JSON.parse(JSON.stringify(tableroActual));
-        }
-        return mejorSolucion;
-      }
-
-      const regionId = regionesVacias[profundidad];
-      const celdas = areas[regionId];
-      const opciones = asignarFlechas(celdas, tableroActual);
-
-      for (const { x, y, flecha } of opciones) {
-        //if (flechasPorRegion.has(regionId)) continue;
-
-        tableroActual[x][y].flecha = flecha;
-        //const objetivo = buscarFlechaEnDireccion(tableroActual, { x, y, flecha });
-        //if (objetivo) {
-          //if (objetivo.flecha !== direccionOpuesta(flecha)) continue;
-          //if (sonAdyacentes({ x, y }, objetivo)) continue;
-          //if (!haySeparacionDeRegion({ x, y, flecha, region: tableroActual[x][y].region }, objetivo, tableroActual)) continue;
-        //}
-        flechasPorRegion.set(regionId, { x, y, flecha });
-
-        
-      
-        if (estadoParcialValido(tableroActual, x, y, flechasPorRegion)) {
-          backtracking(profundidad + 1);
-          if (mejorSolucion) continue; // detener si encontró solución
-        }
-      
-        tableroActual[x][y].flecha = '';
-        flechasPorRegion.delete(regionId);
-      }
-
-    }
-
-    backtracking();
-    return mejorSolucion || tableroOriginal;
-  };
-
-  // Componente Resolver actualizado
   const [solucion, setSolucion] = useState([]);
 
-  useEffect(() => {
-    if (tablero.length === 0) return;
+  const resolverToichika = (orig) => {
+    const areas = encontrarAreas(orig);
+    // sólo regiones sin flechas, MRV sobre tamaño
+    const regionesVacias = Object.keys(areas)
+      .filter(r => areas[r].every(([x,y]) => orig[x][y].flecha === ''))
+      .sort((a,b) => areas[a].length - areas[b].length);
+    const sinAsignar = new Set(regionesVacias);
+
+    const t = orig.map(f => f.map(c => ({ ...c })));
+    let hallado = null;
+
+    const dfs = () => {
+      if (sinAsignar.size === 0) {
+        // validación global antes de aceptar
+        if (esValida(t)) {
+          hallado = t.map(f => f.map(c => ({ ...c })));
+          return true;
+        }
+        return false;
+      }
+      // MRV local
+      let mejorR, mejorOpts;
+      for (let r of sinAsignar) {
+        const opts = asignarFlechas(areas[r], t);
+        if (opts.length === 0) return false;
+        if (!mejorOpts || opts.length < mejorOpts.length) {
+          mejorR = r; mejorOpts = opts;
+        }
+      }
+      sinAsignar.delete(mejorR);
+      for (let { x, y, flecha } of mejorOpts) {
+        t[x][y].flecha = flecha;
+        if (esLocalValido(t, x, y) && dfs()) return true;
+        t[x][y].flecha = '';
+      }
+      sinAsignar.add(mejorR);
+      return false;
+    };
+
+    dfs();
+    return hallado;
+  };
+
   
-    let intentos = 0;
-    const maxIntentos = 2;
-    let solucionGenerada = null;
-  
-    while (intentos < maxIntentos) {
-      solucionGenerada = resolverToichika(tablero);
-      if (esValida(solucionGenerada)) break;
-      intentos++;
+useEffect(() => {
+  if (!tablero.length) return;
+  let activo = true;
+
+  // Deferimos la ejecución
+  setTimeout(() => {
+    if (!activo) return;
+    const sol = resolverToichika(tablero);
+    if (activo) {
+      if (sol) setSolucion(sol);
+      else {
+        console.error("No hay solución válida");
+        onSolucionInvalida();
+      }
     }
-  
-    if (esValida(solucionGenerada)) {
-      setSolucion(solucionGenerada);
-    } else {
-      console.error("No se encontró solución válida tras múltiples intentos");
-      onSolucionInvalida();
-    }
-  }, [tablero, onSolucionInvalida]);
+  }, 0);
+
+  return () => { activo = false };
+}, [tablero, onSolucionInvalida]);
 
   return (
-    <div style={{ margin: '20px', padding: '20px', border: '1px solid #ccc' }}>
-      <h3>Solución Generada Propuesta:</h3>
+    <div style={{ margin: 20, padding: 20, border: '1px solid #ccc' }}>
+      <h3>Solución Toichika:</h3>
       <div style={{
         display: 'grid',
-        gridTemplateColumns: `repeat(${tablero[0]?.length || 0}, 50px)`,
-        gap: '2px',
+        gridTemplateColumns: `repeat(${tablero[0]?.length||0}, 50px)`,
+        gap: 2,
         justifyContent: 'center'
       }}>
-        {solucion.map((fila, x) =>
-          fila.map((celda, y) => (
-            <div
-              key={`${x}-${y}`}
-              style={{
-                width: '50px',
-                height: '50px',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: `hsl(${celda.region * 40}, 70%, 90%)`,
-                border: '1px solid #666'
-              }}
-            >
-              {celda.flecha !== '' && celda.flecha}
+        {solucion.map((fila,x) =>
+          fila.map((celda,y) => (
+            <div key={`${x}-${y}`}
+                 style={{
+                   width:50, height:50,
+                   display:'flex', alignItems:'center', justifyContent:'center',
+                   backgroundColor:`hsl(${celda.region*40},70%,90%)`,
+                   border:'1px solid #666'
+                 }}>
+              {celda.flecha}
             </div>
           ))
         )}

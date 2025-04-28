@@ -7,6 +7,8 @@ import React, { useState, useCallback } from 'react';
 function App() {
   const [size, setSize] = useState(6);
   const [tableroState, setTableroState] = useState([]);
+  const [mostrarSolver, setMostrarSolver] = useState(false);
+
   //const [solucionState, setSolucionState] = useState([]);
 
   const memoizedSetTablero = useCallback((nuevoTablero) => {
@@ -52,11 +54,22 @@ function App() {
         onTableroGenerado={memoizedSetTablero}
       />
 
-      <Resolver 
-        tablero={tableroState}
-        onSolucionInvalida={() => alert('¡Solución inválida!')}
-        //onSolucionGenerada={setSolucionState}
-      />
+      <div style={{ textAlign: 'center', margin: '20px 0' }}>
+        <button
+          onClick={() => setMostrarSolver(v => !v)}
+          style={{ padding: '8px 16px', cursor: 'pointer' }}
+        >
+          {mostrarSolver ? 'Ocultar Solución' : 'Mostrar Solución'}
+        </button>
+      </div>
+
+      {mostrarSolver && (
+        <Resolver
+          tablero={tableroState}
+          onSolucionInvalida={() => alert('¡Solución inválida!')}
+        />
+      )}
+
       <br/>
       
    </div>

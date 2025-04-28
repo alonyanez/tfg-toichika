@@ -1,191 +1,282 @@
 import React, { useState, useEffect} from 'react';
 
+function buscarFlechaEnDireccion(tablero, f) {
+  let { x, y, flecha } = f;
+  let dx = 0, dy = 0;
+  if (flecha === '↑') dx = -1;
+  if (flecha === '↓') dx = 1;
+  if (flecha === '←') dy = -1;
+  if (flecha === '→') dy = 1;
 
-// Función para encontrar las áreas en el tablero
+  x += dx;
+  y += dy;
 
+  while (x >= 0 && x < tablero.length && y >= 0 && y < tablero[0].length) {
+    const celda = tablero[x][y];
+    if (celda.flecha && celda.flecha !== '') {
+      return { x, y, flecha: celda.flecha, region: celda.region };
+    }
+    x += dx;
+    y += dy;
+  }
+
+  return null;
+}
+
+function sonAdyacentes(f1, f2) {
+  const dx = Math.abs(f1.x - f2.x);
+  const dy = Math.abs(f1.y - f2.y);
+  return (dx + dy === 1);
+}
+
+
+function direccionOpuesta(flecha) {
+  return { '↑': '↓', '↓': '↑', '←': '→', '→': '←' }[flecha];
+}
+function esAdyacente(region, regionF, tablero, x, y) {
+  const direcciones = [
+    [-1, 0], // Arriba
+    [1, 0],  // Abajo
+    [0, -1], // Izquierda
+    [0, 1],  // Derecha
+  ];
+
+  for (let [dx, dy] of direcciones) {
+    const nx = x + dx;
+    const ny = y + dy;
+    if (nx >= 0 && ny >= 0 && nx < tablero.length && ny < tablero[nx].length) {
+      if (tablero[nx][ny].region === regionF) {
+        return true; // Si alguna celda adyacente es de la región de f1 o f2
+      }
+    }
+  }
+  return false;
+}
+
+function haySeparacionDeRegion(f1, f2, tablero) {
+  let dx = Math.sign(f2.x - f1.x);
+  let dy = Math.sign(f2.y - f1.y);
+  let x = f1.x + dx;
+  let y = f1.y + dy;
+
+  let hayRegionDiferente = false;
+
+  while (x !== f2.x || y !== f2.y) {
+    const celda = tablero[x][y];
+
+    // Si hay una flecha, sigue siendo inválido igual
+    if (celda.flecha && celda.flecha !== '') return false;
+
+    // Si encontramos una región diferente, marcamos
+    if (celda.region !== f1.region) {
+      if (!esAdyacente(celda.region, f1.region, tablero, x, y)) {
+        hayRegionDiferente = true;
+      }
+    }
+
+    x += dx;
+    y += dy;
+  }
+
+  return hayRegionDiferente;
+}
+
+function recolectarFlechas(tablero) {
+  const flechas = [];
+  for (let x = 0; x < tablero.length; x++) {
+    for (let y = 0; y < tablero[0].length; y++) {
+      const celda = tablero[x][y];
+      if (celda.flecha && celda.flecha !== '') {
+        flechas.push({ x, y, flecha: celda.flecha, region: celda.region });
+      }
+    }
+  }
+  return flechas;
+}
+
+function agruparFlechasPorRegion(flechas) {
+  const flechasPorRegion = {};
+  for (let f of flechas) {
+    if (flechasPorRegion[f.region]) {
+      return false; // Más de una flecha en una región
+    }
+    flechasPorRegion[f.region] = f;
+  }
+  return flechasPorRegion; 
+}
+
+function esValida(tablero) {
+  const flechas = recolectarFlechas(tablero);
+  
+  const flechasPorRegion = agruparFlechasPorRegion(flechas);
+  if(!flechasPorRegion) return false;
+
+  const yaEmparejadas = new Set();
+  for (let f of flechas) {
+    const id = `${f.x},${f.y}`;
+    if (yaEmparejadas.has(id)) continue;
+
+    const objetivo = buscarFlechaEnDireccion(tablero, f);
+    if (!objetivo) return false; 
+
+    if (objetivo.flecha !== direccionOpuesta(f.flecha)) return false;
+    if (!haySeparacionDeRegion(f, objetivo, tablero)) return false;
+    if (sonAdyacentes(f, objetivo)) return false;
+
+    yaEmparejadas.add(id);
+    yaEmparejadas.add(`${objetivo.x},${objetivo.y}`);
+  }
+
+  return true;
+  
+}
+
+function estadoParcialValido(tableroActual, x, y, flechasPorRegion){
+  const celda = tableroActual[x][y];
+  const flecha = { x, y, flecha: celda.flecha, region: celda.region };
+
+  // Ya hay flecha en la región
+  if (flechasPorRegion.has(celda.region)) return false;
+
+  const objetivo = buscarFlechaEnDireccion(tableroActual, flecha);
+  if (!objetivo) return true; // aún no hay pareja, puede ser válida
+
+  // Si encontramos una flecha: debe ser opuesta, no adyacente, con región diferente entremedio
+  if (objetivo.flecha !== direccionOpuesta(flecha.flecha)) return false;
+  if (sonAdyacentes(flecha, objetivo)) return false;
+  if (!haySeparacionDeRegion(flecha, objetivo, tableroActual)) return false;
+
+  return true;
+}
 const encontrarAreas = (tablero) => {
   const areas = {};
+  
+  // Verificar si el tablero es válido
+  if (!tablero || !Array.isArray(tablero)) return areas;
+
   tablero.forEach((fila, i) => {
+    // Verificar si la fila es un array válido
+    if (!Array.isArray(fila)) return;
+    
     fila.forEach((celda, j) => {
-      const region = celda.region;
+      const region = celda?.region ?? 0;
       if (!areas[region]) areas[region] = [];
       areas[region].push([i, j]);
     });
   });
   
-  console.log(areas);
-  
   return areas;
 };
 
-const obtenerDireccion = (actual, siguiente) => {
-  const [x1, y1] = actual;
-  const [x2, y2] = siguiente;
-  
-  if (x2 === x1 - 1) return '↑';
-  if (x2 === x1 + 1) return '↓';
-  if (y2 === y1 - 1) return '←';
-  if (y2 === y1 + 1) return '→';
-  return 'VACIO';
-};
-
-const solucionValida = (tableroSolucion, region) => {
-  const celdas = encontrarAreas(tableroSolucion)[region];
-  const flechas = celdas.filter(([x, y]) => tableroSolucion[x][y].flecha !== 'VACIO');
-  
-  // Si la región ya tenía una flecha predefinida, validar su par
-  if (flechas.length === 1) {
-    const [x, y] = flechas[0];
-    let tx = x, ty = y;
-    let pasos = 0;
-    
-    while (true) {
-      switch(tableroSolucion[tx][ty].flecha) {
-        case '→': ty++; break;
-        case '←': ty--; break;
-        case '↓': tx++; break;
-        case '↑': tx--; break;
-        default: return false;
-      }
-      
-      if (tx < 0 || ty < 0 || tx >= tableroSolucion.length || ty >= tableroSolucion[0].length) return false;
-      
-      if (tableroSolucion[tx][ty].flecha !== 'VACIO') {
-        return (
-          tableroSolucion[tx][ty].flecha === obtenerDireccion([tx, ty], [x, y]) &&
-          pasos >= 1 &&
-          !sonAdyacentes(region.toString(), tableroSolucion[tx][ty].region.toString(), encontrarAreas(tableroSolucion))
-        );
-      }
-      
-      pasos++;
-      if (pasos > 100) return false; // Prevenir loops infinitos
-    }
-  }
-  
-  return flechas.length === 0; // Región vacía aún no resuelta
-};
-
-const sonAdyacentes = (regionA, regionB, areas) => {
-  const celdasA = areas[regionA];
-  const celdasB = areas[regionB];
-  
-  return celdasA.some(([x1, y1]) => 
-    celdasB.some(([x2, y2]) => 
-      (Math.abs(x1 - x2) === 1 && y1 === y2) || 
-      (Math.abs(y1 - y2) === 1 && x1 === x2)
-    )
-  );
-};
-
-// Encuentra todos los posibles pares válidos entre regiones
-const encontrarParesValidos = (areas) => {
-  const regiones = Object.keys(areas);
-  const pares = [];
-  
-  for (let i = 0; i <= regiones.length; i++) {
-    for (let j = i + 1; j < regiones.length; j++) {
-      const regionA = regiones[i];
-      const regionB = regiones[j];
-      
-      if (!sonAdyacentes(regionA, regionB, areas)) {
-        pares.push([regionA, regionB]);
-      }
-    }
-  }
-  return pares;
-};
-
 // Genera solución válida
-const resolverToichika = (tableroOriginal) => {
-  const areas = encontrarAreas(tableroOriginal);
-  const nuevoTablero = JSON.parse(JSON.stringify(tableroOriginal)); // Clona el tablero con flechas existentes
-  const paresValidos = encontrarParesValidos(areas);
-  const regionesDisponibles = new Set(
-    Object.keys(areas).filter(region => 
-      areas[region].every(([x, y]) => nuevoTablero[x][y].flecha === 'VACIO') // Solo regiones sin flechas
-    )
-  );
+function Resolver({ tablero, onSolucionInvalida }) {
+  const resolverToichika = (tableroOriginal) => {
+    const areas = encontrarAreas(tableroOriginal);
 
-  // Asignar flechas a pares respetando las existentes
-  paresValidos.forEach(([regionA, regionB]) => {
-    if (!regionesDisponibles.has(regionA) || !regionesDisponibles.has(regionB)) return;
+    const regionesVacias = Object.keys(areas).filter(region => 
+      areas[region].every(([x, y]) => tableroOriginal[x][y].flecha === '')
+    ).sort((a, b) => areas[a].length - areas[b].length);
 
-    const celdasA = areas[regionA].filter(([x, y]) => nuevoTablero[x][y].flecha === 'VACIO');
-    const celdasB = areas[regionB].filter(([x, y]) => nuevoTablero[x][y].flecha === 'VACIO');
+    //const tableroBorrador = JSON.parse(JSON.stringify(tableroOriginal));
+    const tableroActual = tableroOriginal.map(
+        fila => fila.map(celda => ({ ...celda })));
 
-    // Encontrar pares alineados en celdas vacías
-    const posiblesPares = [];
-    celdasA.forEach(([x1, y1]) => {
-      celdasB.forEach(([x2, y2]) => {
-        if (x1 === x2 && Math.abs(y1 - y2) > 1) {
-          posiblesPares.push({tipo: 'horizontal', c1: [x1, y1], c2: [x2, y2]});
+    let mejorSolucion = null;
+
+    const asignarFlechas = (regionCeldas, tablero) => {
+      const opciones = [];
+    
+      for (const [x, y] of regionCeldas) {
+        // Saltar si esta celda ya tiene flecha (aunque no debería pasar)
+        if (tablero[x][y].flecha !== '') continue;
+    
+        if (x > 0 && tablero[x - 1][y]?.flecha === '') {
+          opciones.push({ x, y, flecha: '↑' });
         }
-        if (y1 === y2 && Math.abs(x1 - x2) > 1) {
-          posiblesPares.push({tipo: 'vertical', c1: [x1, y1], c2: [x2, y2]});
+        if (x < tablero.length - 1 && tablero[x + 1][y]?.flecha === '') {
+          opciones.push({ x, y, flecha: '↓' });
         }
-      });
-    });
+        if (y > 0 && tablero[x][y - 1]?.flecha === '') {
+          opciones.push({ x, y, flecha: '←' });
+        }
+        if (y < tablero[0].length - 1 && tablero[x][y + 1]?.flecha === '') {
+          opciones.push({ x, y, flecha: '→' });
+        }
+      }
+    
+      return opciones;
+    };
 
-    if (posiblesPares.length === 0) return;
+    const flechasPorRegion = new Map();
 
-    const par = posiblesPares[Math.floor(Math.random() * posiblesPares.length)];
-    // Asignar flechas solo en celdas vacías
-    if (par.tipo === 'horizontal') {
-      nuevoTablero[par.c1[0]][par.c1[1]].flecha = par.c1[1] < par.c2[1] ? '→' : '←';
-      nuevoTablero[par.c2[0]][par.c2[1]].flecha = par.c1[1] < par.c2[1] ? '←' : '→';
-    } else {
-      nuevoTablero[par.c1[0]][par.c1[1]].flecha = par.c1[0] < par.c2[0] ? '↓' : '↑';
-      nuevoTablero[par.c2[0]][par.c2[1]].flecha = par.c1[0] < par.c2[0] ? '↑' : '↓';
+    function backtracking(profundidad = 0) {
+      if (profundidad === regionesVacias.length) {
+        if (esValida(tableroActual)) {
+          mejorSolucion = JSON.parse(JSON.stringify(tableroActual));
+        }
+        return mejorSolucion;
+      }
+
+      const regionId = regionesVacias[profundidad];
+      const celdas = areas[regionId];
+      const opciones = asignarFlechas(celdas, tableroActual);
+
+      for (const { x, y, flecha } of opciones) {
+        //if (flechasPorRegion.has(regionId)) continue;
+
+        tableroActual[x][y].flecha = flecha;
+        //const objetivo = buscarFlechaEnDireccion(tableroActual, { x, y, flecha });
+        //if (objetivo) {
+          //if (objetivo.flecha !== direccionOpuesta(flecha)) continue;
+          //if (sonAdyacentes({ x, y }, objetivo)) continue;
+          //if (!haySeparacionDeRegion({ x, y, flecha, region: tableroActual[x][y].region }, objetivo, tableroActual)) continue;
+        //}
+        flechasPorRegion.set(regionId, { x, y, flecha });
+
+        
+      
+        if (estadoParcialValido(tableroActual, x, y, flechasPorRegion)) {
+          backtracking(profundidad + 1);
+          if (mejorSolucion) continue; // detener si encontró solución
+        }
+      
+        tableroActual[x][y].flecha = '';
+        flechasPorRegion.delete(regionId);
+      }
+
     }
 
-    regionesDisponibles.delete(regionA);
-    regionesDisponibles.delete(regionB);
-  });
+    backtracking();
+    return mejorSolucion || tableroOriginal;
+  };
 
-  return nuevoTablero;
-};
-
-// Componente Resolver actualizado
-function Resolver({ tablero }) {
+  // Componente Resolver actualizado
   const [solucion, setSolucion] = useState([]);
 
   useEffect(() => {
     if (tablero.length === 0) return;
   
-    const generarSolucionValida = () => {
-      let mejorSolucion = null;
-      let mejorPuntaje = -Infinity;
-      
-      // Ejecutar 100 iteraciones para encontrar la mejor solución
-      for (let i = 0; i < 100000; i++) {
-        const solucionGenerada = resolverToichika(tablero);
-        const regiones = Object.keys(encontrarAreas(tablero));
-        const valida = regiones.every(region => solucionValida(solucionGenerada, parseInt(region)));
-        
-        if (valida) return solucionGenerada;
-        
-        // Calcular puntaje de solución parcial
-        const puntaje = regiones.filter(region => 
-          solucionValida(solucionGenerada, parseInt(region))
-        ).length;
-        
-        if (puntaje > mejorPuntaje) {
-          mejorPuntaje = puntaje;
-          mejorSolucion = solucionGenerada;
-        }
-      }
-      
-      return mejorSolucion;
-    };
+    let intentos = 0;
+    const maxIntentos = 2;
+    let solucionGenerada = null;
   
-    const solucion = generarSolucionValida();
-    solucion ? setSolucion(solucion) : console.error("No se encontró solución perfecta");
-  }, [tablero]);
+    while (intentos < maxIntentos) {
+      solucionGenerada = resolverToichika(tablero);
+      if (esValida(solucionGenerada)) break;
+      intentos++;
+    }
+  
+    if (esValida(solucionGenerada)) {
+      setSolucion(solucionGenerada);
+    } else {
+      console.error("No se encontró solución válida tras múltiples intentos");
+      onSolucionInvalida();
+    }
+  }, [tablero, onSolucionInvalida]);
 
   return (
     <div style={{ margin: '20px', padding: '20px', border: '1px solid #ccc' }}>
-      <h3>Solución Generada:</h3>
+      <h3>Solución Generada Propuesta:</h3>
       <div style={{
         display: 'grid',
         gridTemplateColumns: `repeat(${tablero[0]?.length || 0}, 50px)`,
@@ -206,7 +297,7 @@ function Resolver({ tablero }) {
                 border: '1px solid #666'
               }}
             >
-              {celda.flecha !== 'VACIO' && celda.flecha}
+              {celda.flecha !== '' && celda.flecha}
             </div>
           ))
         )}
@@ -216,7 +307,3 @@ function Resolver({ tablero }) {
 }
 
 export default Resolver;
-
-
-
-
