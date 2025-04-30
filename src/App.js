@@ -17,15 +17,21 @@ function App() {
     setTableroState(nuevoTablero);
   }, []);
 
+  const onGenerado = useCallback(tab => {
+    setTableroState(tab);
+  }, []);
+
+  const onCambio = useCallback(tab => {
+    setTableroState(tab);
+  }, []);
+
  useEffect(() => {
-    if (tableroState.length === 0) return;
+    if (!tableroState.length) return;
 
     if (esValida(tableroState)) {
-      // ¡bien! lo dejamos
       console.log('Tablero válido generado en', intentos + 1, 'intentos');
-      setIntentos(0);        // reset para futuras regeneraciones
+      setIntentos(0); 
     } else {
-      // no tiene solución: regenerar
       if (intentos < MAX_INTENTOS - 1) {
         setIntentos(i => i + 1);
         setRegenKey(k => k + 1);
@@ -33,22 +39,17 @@ function App() {
         alert(`No hemos encontrado un tablero con solución tras ${MAX_INTENTOS} intentos.\nPrueba a cambiar el tamaño o reiniciar.`);
       }
     }
-  }, [tableroState, intentos]);
+  }, [regenKey]);
 
   const comprobarSolucion = () => {
-    // 1) cuentas flechas
     const flechasPuestas = tableroState.flat().filter(c => c.flecha).length;
-
-    // 2) cuentas regiones
     const regionCount = Object.keys(encontrarAreas(tableroState)).length;
 
-    // 3) revisas que estén todas
     if (flechasPuestas < regionCount) {
       alert(`Debes colocar ${regionCount} flechas. Ahora llevas ${flechasPuestas}.`);
       return;
     }
 
-    // 4) validas toda la solución
     const valido = esValida(tableroState);
     alert(valido ? '¡Solución válida!' : 'Solución inválida.');
   };
@@ -64,7 +65,9 @@ function App() {
       <Tablero
         key={regenKey}
         size={size}
-        onTableroGenerado={memorizedSetTablero}
+        //onTableroGenerado={memorizedSetTablero}
+        onTableroGenerado={onGenerado}
+        onTableroChange={onCambio}
       />
 
       <div style={{ textAlign: 'center', margin: '20px 0' }}>
