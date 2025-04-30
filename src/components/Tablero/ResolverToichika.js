@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-// ——— Helpers Toichika ———
+
 function buscarFlechaEnDireccion(tablero, f) {
   let { x, y, flecha } = f;
   let dx = 0, dy = 0;
@@ -27,7 +27,7 @@ function direccionOpuesta(flecha) {
   return { '↑': '↓', '↓': '↑', '←': '→', '→': '←' }[flecha];
 }
 
-function esAdyacente(regionA, regionB, tablero, x, y) {
+/*function esAdyacente(regionA, regionB, tablero, x, y) {
   const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
   return dirs.some(([dx,dy]) => {
     const nx = x+dx, ny = y+dy;
@@ -37,7 +37,7 @@ function esAdyacente(regionA, regionB, tablero, x, y) {
       tablero[nx][ny].region === regionB
     );
   });
-}
+}*/
 
 function haySeparacionDeRegion(f1, f2, tablero) {
   const dx = Math.sign(f2.x - f1.x);
@@ -55,9 +55,9 @@ function haySeparacionDeRegion(f1, f2, tablero) {
   return vioDistinta;
 }
 
-// ——— Validación global ———
-function esValida(tablero) {
-  // 1) Recolectar todas las flechas
+// Valida el tablero
+export function esValida(tablero) {
+  //Recoge todas las flechas del tablero
   const flechas = [];
   for (let i = 0; i < tablero.length; i++) {
     for (let j = 0; j < tablero[0].length; j++) {
@@ -67,13 +67,15 @@ function esValida(tablero) {
       }
     }
   }
-  // 2) Una sola flecha por región
+
+  //Se comprueba que cada región tiene 1 sola flecha
   const usado = new Set();
   for (let f of flechas) {
     if (usado.has(f.region)) return false;
     usado.add(f.region);
   }
-  // 3) Emparejar cada flecha
+
+  //Se buscan los pares de flechas
   const emparejadas = new Set();
   for (let f of flechas) {
     const id = `${f.x},${f.y}`;
@@ -89,7 +91,7 @@ function esValida(tablero) {
   return true;
 }
 
-function encontrarAreas(tablero) {
+export function encontrarAreas(tablero) {
   const areas = {};
   tablero.forEach((fila, i) =>
     fila.forEach((celda, j) => {
@@ -123,7 +125,7 @@ function esLocalValido(tablero, x, y) {
   return true;
 }
 
-// ——— Componente Resolver ———
+//Resolver
 function Resolver({ tablero, onSolucionInvalida }) {
   const [solucion, setSolucion] = useState([]);
 
@@ -182,18 +184,18 @@ useEffect(() => {
     if (activo) {
       if (sol) setSolucion(sol);
       else {
-        console.error("No hay solución válida");
+        console.error("¡El tablero no tiene solución!");
         onSolucionInvalida();
       }
     }
   }, 0);
 
   return () => { activo = false };
-}, [tablero, onSolucionInvalida]);
+}, []);
 
   return (
     <div style={{ margin: 20, padding: 20, border: '1px solid #ccc' }}>
-      <h3>Solución Toichika:</h3>
+      <h3>Solución propuesta:</h3>
       <div style={{
         display: 'grid',
         gridTemplateColumns: `repeat(${tablero[0]?.length||0}, 50px)`,

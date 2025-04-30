@@ -1,7 +1,7 @@
 import './App.css';
 import Tablero from './components/Tablero/Tablero';
 import Resolver from './components/Tablero/ResolverToichika';
-import PedirValor from './components/pedirValor';
+import { esValida, encontrarAreas } from './components/Tablero/ResolverToichika';
 import React, { useState, useCallback } from 'react';
 
 function App() {
@@ -11,7 +11,7 @@ function App() {
 
   //const [solucionState, setSolucionState] = useState([]);
 
-  const memoizedSetTablero = useCallback((nuevoTablero) => {
+  const memorizedSetTablero = useCallback((nuevoTablero) => {
     setTableroState(nuevoTablero);
   }, []);
 
@@ -19,42 +19,48 @@ function App() {
     setSize(parseInt(nuevoSize, 10));
   }
 
-  /*const solucionMemoizada = useMemo(() => {
-    return solucionState;
-  }, [solucionState]);*/
-
-  /*const comprobarSolucion = () => {
-    // Comparamos sólo si hay cambios en las celdas del tablero
-    const iguales = tableroState.every((fila, i) =>
-      fila.every((celda, j) =>
-        celda.flecha === solucionMemoizada[i]?.[j]?.flecha
-      )
-    );
-
-    if (iguales) {
-      console.log("¡Está resuelto!");
-    } else {
-      console.log("Aún no está resuelto");
-    }
-  };
-  
-  <button style={{ textAlign: 'center'}} onClick={comprobarSolucion}>Comprobar Solución</button>
+  /*<button style={{ textAlign: 'center'}} onClick={comprobarSolucion}>Comprobar Solución</button>
+   <PedirValor onActualizar={actualizarSize}/>
   */
+
+  const comprobarSolucion = () => {
+    // 1) cuentas flechas
+    const flechasPuestas = tableroState.flat().filter(c => c.flecha).length;
+
+    // 2) cuentas regiones
+    const regionCount = Object.keys(encontrarAreas(tableroState)).length;
+
+    // 3) revisas que estén todas
+    if (flechasPuestas < regionCount) {
+      alert(`Debes colocar ${regionCount} flechas. Ahora llevas ${flechasPuestas}.`);
+      return;
+    }
+
+    // 4) validas toda la solución
+    const valido = esValida(tableroState);
+    alert(valido ? '¡Solución válida!' : 'Solución inválida.');
+  };
+
 
   return (
     <div >
       <div style={{ textAlign: 'center'}}>
         <h1>¡Bienvenido!</h1>
-       <PedirValor onActualizar={actualizarSize}/>
       </div>
 
       <h1  style={{ textAlign: 'center'}}>Tablero de Toichika</h1>
       <Tablero
         size={size}
-        onTableroGenerado={memoizedSetTablero}
+        onTableroGenerado={memorizedSetTablero}
       />
 
       <div style={{ textAlign: 'center', margin: '20px 0' }}>
+        <button
+          onClick={comprobarSolucion}
+          style={{ marginRight: 10, padding: '8px 16px', cursor: 'pointer' }}
+        >
+          Comprobar Solución
+        </button>
         <button
           onClick={() => setMostrarSolver(v => !v)}
           style={{ padding: '8px 16px', cursor: 'pointer' }}
@@ -66,7 +72,7 @@ function App() {
       {mostrarSolver && (
         <Resolver
           tablero={tableroState}
-          onSolucionInvalida={() => alert('¡Solución inválida!')}
+          onSolucionInvalida={() => alert("¡El tablero no tiene solución!")}
         />
       )}
 

@@ -98,17 +98,14 @@ function Tablero({size, onTableroGenerado}){
   const manejarClickCelda = (x, y) => {
     setTablero(prevTablero => {
       const nuevoTablero = prevTablero.map((fila, i) =>
-        fila.map((celda, j) => {
-          if (i === x && j === y) {
-            return {
-              ...celda,
-              flecha: obtenerSiguienteFlecha(celda.flecha)
-            };
-          }
-          return celda;
-        })
+        fila.map((celda, j) => 
+          i === x && j === y 
+          ? { ...celda, flecha: obtenerSiguienteFlecha(celda.flecha) } 
+          : celda
+        )
       );
 
+      onTableroGenerado(nuevoTablero);
       return nuevoTablero;
     });
   };
@@ -127,7 +124,7 @@ function Tablero({size, onTableroGenerado}){
         }))
       );*/
       
-    const nuevoTablero = generarRegionesAleatorias(size, size, 8); // tamaño = cantidad de regiones
+    const nuevoTablero = generarRegionesAleatorias(size, size, 8);
       
       //nuevoTablero[0][5].flecha = '↓';
       //nuevoTablero[1][4].flecha = '←';
@@ -196,7 +193,7 @@ function Tablero({size, onTableroGenerado}){
               key={`${x}-${y}`}
               onClick={(e) => manejarClickCelda(x, y, 0)}
               onContextMenu={(e) => {
-                e.preventDefault(); // prevenir el menú contextual
+                e.preventDefault(); 
                 manejarClickCelda(x, y, 2);
               }}
               style={{
