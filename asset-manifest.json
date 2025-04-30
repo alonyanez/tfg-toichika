@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/tfg-toichika/static/css/main.f17fe1d7.css",
+    "main.js": "/tfg-toichika/static/js/main.21516160.js",
+    "static/js/488.2c9283fc.chunk.js": "/tfg-toichika/static/js/488.2c9283fc.chunk.js",
+    "index.html": "/tfg-toichika/index.html",
+    "main.f17fe1d7.css.map": "/tfg-toichika/static/css/main.f17fe1d7.css.map",
+    "main.21516160.js.map": "/tfg-toichika/static/js/main.21516160.js.map",
+    "488.2c9283fc.chunk.js.map": "/tfg-toichika/static/js/488.2c9283fc.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.f17fe1d7.css",
+    "static/js/main.21516160.js"
+  ]
+}
