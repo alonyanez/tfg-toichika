@@ -2,26 +2,38 @@ import './App.css';
 import Tablero from './components/Tablero/Tablero';
 import Resolver from './components/Tablero/ResolverToichika';
 import { esValida, encontrarAreas } from './components/Tablero/ResolverToichika';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 
 function App() {
   const [size, setSize] = useState(6);
   const [tableroState, setTableroState] = useState([]);
   const [mostrarSolver, setMostrarSolver] = useState(false);
 
-  //const [solucionState, setSolucionState] = useState([]);
+  const [regenKey, setRegenKey] = useState(0);
+  const [intentos, setIntentos] = useState(0);
+  const MAX_INTENTOS = 50;
 
   const memorizedSetTablero = useCallback((nuevoTablero) => {
     setTableroState(nuevoTablero);
   }, []);
 
-  const actualizarSize = (nuevoSize) => {
-    setSize(parseInt(nuevoSize, 10));
-  }
+ useEffect(() => {
+    if (tableroState.length === 0) return;
 
-  /*<button style={{ textAlign: 'center'}} onClick={comprobarSolucion}>Comprobar Solución</button>
-   <PedirValor onActualizar={actualizarSize}/>
-  */
+    if (esValida(tableroState)) {
+      // ¡bien! lo dejamos
+      console.log('Tablero válido generado en', intentos + 1, 'intentos');
+      setIntentos(0);        // reset para futuras regeneraciones
+    } else {
+      // no tiene solución: regenerar
+      if (intentos < MAX_INTENTOS - 1) {
+        setIntentos(i => i + 1);
+        setRegenKey(k => k + 1);
+      } else {
+        alert(`No hemos encontrado un tablero con solución tras ${MAX_INTENTOS} intentos.\nPrueba a cambiar el tamaño o reiniciar.`);
+      }
+    }
+  }, [tableroState, intentos]);
 
   const comprobarSolucion = () => {
     // 1) cuentas flechas
@@ -50,6 +62,7 @@ function App() {
 
       <h1  style={{ textAlign: 'center'}}>Tablero de Toichika</h1>
       <Tablero
+        key={regenKey}
         size={size}
         onTableroGenerado={memorizedSetTablero}
       />
