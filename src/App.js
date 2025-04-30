@@ -8,14 +8,19 @@ function App() {
   const [size, setSize] = useState(6);
   const [tableroState, setTableroState] = useState([]);
   const [mostrarSolver, setMostrarSolver] = useState(false);
-
+  
+  const [cargando, setCargando] = useState(false);  
   const [regenKey, setRegenKey] = useState(0);
   const [intentos, setIntentos] = useState(0);
   const MAX_INTENTOS = 50;
 
-  const memorizedSetTablero = useCallback((nuevoTablero) => {
-    setTableroState(nuevoTablero);
-  }, []);
+  const handleStartResolve = () => {
+    setCargando(true);
+  };
+
+  const handleEndResolve = () => {
+    setCargando(false);
+  };
 
   const onGenerado = useCallback(tab => {
     setTableroState(tab);
@@ -57,8 +62,23 @@ function App() {
 
   return (
     <div >
-      <div style={{ textAlign: 'center'}}>
-        <h1>¡Bienvenido!</h1>
+      <div style={{
+        maxWidth: '500px',
+        marginTop: '10',
+        margin: '40px auto',
+        padding: '16px',
+        backgroundColor: '#f9f9f9',
+        border: '1px solid #ccc',
+        borderRadius: '8px',
+        lineHeight: '1.5'
+      }}>
+        <h2 style={{ textAlign: 'center'}}>Reglas de Toichika</h2>
+        <ol>
+          <li>Sólo puede haber una flecha por región.</li>
+          <li>Cada flecha tiene una pareja, que se apuntan entre sí.</li>
+          <li>Los pares de flechas no pueden estar en regiones adyacentes.</li>
+          <li>No puede haber ninguna flecha en medio de un par de flechas.</li>
+        </ol>
       </div>
 
       <h1  style={{ textAlign: 'center'}}>Tablero de Toichika</h1>
@@ -85,11 +105,27 @@ function App() {
         </button>
       </div>
 
+      {cargando && (
+        <div style={{ textAlign: 'center', margin: '10px' }}>
+          <span>Resolviendo…</span>
+        </div>
+      )}
+
       {mostrarSolver && (
         <Resolver
           tablero={tableroState}
-          onSolucionInvalida={() => alert("¡El tablero no tiene solución!")}
-        />
+          onStartResolve={handleStartResolve}
+          onEndResolve={handleEndResolve}
+          onSolucionInvalida={() => {
+          handleEndResolve();
+          if (intentos < MAX_INTENTOS - 1) {
+            setIntentos(i => i + 1);
+            setRegenKey(k => k + 1);
+          } else {
+            alert(`No hemos encontrado un tablero con solución tras ${MAX_INTENTOS} intentos.`);
+          }
+        }}
+      />
       )}
 
       <br/>

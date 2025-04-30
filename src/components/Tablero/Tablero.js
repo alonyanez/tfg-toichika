@@ -203,7 +203,7 @@ function Tablero({size, onTableroGenerado}){
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                backgroundColor: `hsl(${celda.region * 40}, 70%, 90%)`,
+                backgroundColor: `hsl(${celda.region * 40}, 70%, 85%)`,
                 ...getBordeEstilo(x, y)
               }}
             >

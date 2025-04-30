@@ -126,7 +126,7 @@ function esLocalValido(tablero, x, y) {
 }
 
 //Resolver
-function Resolver({ tablero, onSolucionInvalida }) {
+function Resolver({ tablero, onSolucionInvalida, onStartResolve, onEndResolve }) {
   const [solucion, setSolucion] = useState([]);
 
   const resolverToichika = (orig) => {
@@ -177,21 +177,26 @@ useEffect(() => {
   if (!tablero.length) return;
   let activo = true;
 
+  if (onStartResolve) onStartResolve();
+
   // Deferimos la ejecución
   setTimeout(() => {
     if (!activo) return;
     const sol = resolverToichika(tablero);
     if (activo) {
-      if (sol) setSolucion(sol);
-      else {
+      if (sol){
+        setSolucion(sol);
+        if (onEndResolve) onEndResolve();
+      }else {
         console.error("¡El tablero no tiene solución!");
+        if (onEndResolve) onEndResolve();
         onSolucionInvalida();
       }
     }
   }, 0);
 
   return () => { activo = false };
-}, []);
+}, [tablero, onSolucionInvalida, onStartResolve, onEndResolve]);
 
   return (
     <div style={{ margin: 20, padding: 20, border: '1px solid #ccc' }}>
