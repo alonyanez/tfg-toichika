@@ -169,7 +169,13 @@ function Resolver({ tablero, onSolucionInvalida, onStartResolve, onEndResolve })
     };
 
     dfs();
-    return hallado;
+    
+    if (hallado) {
+      return hallado;
+    } else {
+      //alert('No pudo encontrar ninguna solución válida.'); 
+      return null;
+    }
   };
 
   
@@ -183,16 +189,17 @@ useEffect(() => {
   setTimeout(() => {
     if (!activo) return;
     const sol = resolverToichika(tablero);
-    if (activo) {
-      if (sol){
-        setSolucion(sol);
-        if (onEndResolve) onEndResolve();
-      }else {
-        console.error("¡El tablero no tiene solución!");
-        if (onEndResolve) onEndResolve();
-        onSolucionInvalida();
-      }
+    if (!activo) return;
+
+    if (sol){
+      setSolucion(sol);
+      if (onEndResolve) onEndResolve();
+    }else {
+      console.error("¡El tablero no tiene solución!");
+      if (onEndResolve) onEndResolve();
+      onSolucionInvalida();
     }
+
   }, 0);
 
   return () => { activo = false };
