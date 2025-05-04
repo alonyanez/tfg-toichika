@@ -1,14 +1,14 @@
 .tablero {
     display: grid;
-    gap: 1px;                               /* Espaciado entre las celdas */
+    gap: 1px;                               
     margin: 20px auto;
-    width: 450px;  /* Ajusta el tamaño según necesites */
-    height: 450px; /* Ajusta el tamaño según necesites */
+    width: 450px;  
+    height: 450px;
     border: 3px solid black;
 }
 
 .fila {
-    display: contents; /* Hace que los elementos de .fila no afecten el grid */
+    display: contents; 
 }
 
 .celda {

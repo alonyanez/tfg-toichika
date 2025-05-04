@@ -111,11 +111,11 @@ function Tablero({size, onTableroGenerado}){
   };
 
   const generarTablero = useCallback(() => {
-    if( size !== 6 ){
-      console.error("Solo se admite tamaño 6 en este tablero predefinido");
-      return Array.from({ length: size }, () => 
-      Array.from({ length: size }, () => ({ region: 0, flecha: '' })));
-    }
+    //if( size !== 6 ){
+      //console.error("Solo se admite tamaño 6 en este tablero predefinido");
+      //return Array.from({ length: size }, () => 
+      //Array.from({ length: size }, () => ({ region: 0, flecha: '' })));
+    //}
   
       /*const nuevoTablero = tableroPredefinido.map(row => 
         row.map(celda => ({
@@ -124,7 +124,7 @@ function Tablero({size, onTableroGenerado}){
         }))
       );*/
       
-    const nuevoTablero = generarRegionesAleatorias(size, size, 8);
+    const nuevoTablero = generarRegionesAleatorias(size, size, 10);
       
       //nuevoTablero[0][5].flecha = '↓';
       //nuevoTablero[1][4].flecha = '←';
@@ -203,7 +203,8 @@ function Tablero({size, onTableroGenerado}){
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                backgroundColor: `hsl(${celda.region * 40}, 70%, 85%)`,
+                fontSize: '24px', 
+                backgroundColor: `hsl(${celda.region * 35}, 70%, 85%)`,
                 ...getBordeEstilo(x, y)
               }}
             >
