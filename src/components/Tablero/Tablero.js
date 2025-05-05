@@ -13,6 +13,16 @@ const FLECHAS = ['↑', '→', '↓', '←', ''];
 ];
 */
 
+/*const tableroPredefinido = [
+  [{region: 0}, {region: 1}, {region: 1}, {region: 2}, {region: 3}, {region: 3}],
+  [{region: 0}, {region: 0}, {region: 4}, {region: 2}, {region: 2}, {region: 2}],
+  [{region: 0}, {region: 5}, {region: 4}, {region: 4}, {region: 4}, {region: 2}],
+  [{region: 5}, {region: 5}, {region: 4}, {region: 4}, {region: 6}, {region: 7}],
+  [{region: 8}, {region: 8}, {region: 9}, {region: 9}, {region: 6}, {region: 11}],
+  [{region: 10}, {region: 10}, {region: 10}, {region: 10}, {region: 10}, {region: 10}]
+];
+*/
+
 function generarRegionesAleatorias(filas, columnas, cantidadRegiones) {
   const tablero = Array.from({ length: filas }, () =>
     Array.from({ length: columnas }, () => ({ region: -1, flecha: '' }))
@@ -204,7 +214,7 @@ function Tablero({size, onTableroGenerado}){
                 justifyContent: 'center',
                 alignItems: 'center',
                 fontSize: '24px', 
-                backgroundColor: `hsl(${celda.region * 35}, 70%, 85%)`,
+                backgroundColor: `hsl(${celda.region * 30}, 80%, 75%)`,
                 ...getBordeEstilo(x, y)
               }}
             >

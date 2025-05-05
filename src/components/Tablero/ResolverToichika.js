@@ -19,9 +19,9 @@ function buscarFlechaEnDireccion(tablero, f) {
   return null;
 }
 
-function sonAdyacentes(f1, f2) {
+/*function sonAdyacentes(f1, f2) {
   return Math.abs(f1.x - f2.x) + Math.abs(f1.y - f2.y) === 1;
-}
+}*/
 
 function direccionOpuesta(flecha) {
   return { '↑': '↓', '↓': '↑', '←': '→', '→': '←' }[flecha];
@@ -83,7 +83,7 @@ export function esValida(tablero) {
     const objetivo = buscarFlechaEnDireccion(tablero, f);
     if (!objetivo) return false;
     if (objetivo.flecha !== direccionOpuesta(f.flecha)) return false;
-    if (sonAdyacentes(f, objetivo)) return false;
+    //if (sonAdyacentes(f, objetivo)) return false;
     if (!haySeparacionDeRegion(f, objetivo, tablero)) return false;
     emparejadas.add(id);
     emparejadas.add(`${objetivo.x},${objetivo.y}`);
@@ -103,15 +103,15 @@ export function encontrarAreas(tablero) {
 }
 
 function asignarFlechas(celdas, tablero) {
-  const opts = [];
+  const opcion = [];
   for (const [x, y] of celdas) {
     if (tablero[x][y].flecha) continue;
-    if (x > 0   && !tablero[x-1][y].flecha) opts.push({ x, y, flecha: '↑' });
-    if (x < tablero.length-1 && !tablero[x+1][y].flecha) opts.push({ x, y, flecha: '↓' });
-    if (y > 0   && !tablero[x][y-1].flecha) opts.push({ x, y, flecha: '←' });
-    if (y < tablero[0].length-1 && !tablero[x][y+1].flecha) opts.push({ x, y, flecha: '→' });
+    if (x > 0   && !tablero[x-1][y].flecha) opcion.push({ x, y, flecha: '↑' });
+    if (x < tablero.length-1 && !tablero[x+1][y].flecha) opcion.push({ x, y, flecha: '↓' });
+    if (y > 0   && !tablero[x][y-1].flecha) opcion.push({ x, y, flecha: '←' });
+    if (y < tablero[0].length-1 && !tablero[x][y+1].flecha) opcion.push({ x, y, flecha: '→' });
   }
-  return opts;
+  return opcion;
 }
 
 function esLocalValido(tablero, x, y) {
@@ -120,7 +120,6 @@ function esLocalValido(tablero, x, y) {
   const vecino = buscarFlechaEnDireccion(tablero, f);
   if (!vecino) return true;
   if (vecino.flecha !== direccionOpuesta(f.flecha)) return false;
-  if (sonAdyacentes(f, vecino)) return false;
   if (!haySeparacionDeRegion(f, vecino, tablero)) return false;
   return true;
 }
@@ -129,81 +128,77 @@ function esLocalValido(tablero, x, y) {
 function Resolver({ tablero, onSolucionInvalida, onStartResolve, onEndResolve }) {
   const [solucion, setSolucion] = useState([]);
 
-  const resolverToichika = (orig) => {
-    const areas = encontrarAreas(orig);
-    // sólo regiones sin flechas, MRV sobre tamaño
+  const resolverToichika = (tableroOriginal) => {
+    const areas = encontrarAreas(tableroOriginal);
     const regionesVacias = Object.keys(areas)
-      .filter(r => areas[r].every(([x,y]) => orig[x][y].flecha === ''))
+      .filter(region => areas[region].every(([x,y]) => tableroOriginal[x][y].flecha === ''))
       .sort((a,b) => areas[a].length - areas[b].length);
     const sinAsignar = new Set(regionesVacias);
 
-    const t = orig.map(f => f.map(c => ({ ...c })));
+    const tableroAlgoritmo = tableroOriginal.map(flecha => flecha.map(celda => ({ ...celda })));
     let hallado = null;
 
     const dfs = () => {
       if (sinAsignar.size === 0) {
         // validación global antes de aceptar
-        if (esValida(t)) {
-          hallado = t.map(f => f.map(c => ({ ...c })));
+        if (esValida(tableroAlgoritmo)) {
+          hallado = tableroAlgoritmo.map(flecha => flecha.map(celda => ({ ...celda })));
           return true;
         }
         return false;
       }
-      // MRV local
-      let mejorR, mejorOpts;
-      for (let r of sinAsignar) {
-        const opts = asignarFlechas(areas[r], t);
-        if (opts.length === 0) return false;
-        if (!mejorOpts || opts.length < mejorOpts.length) {
-          mejorR = r; mejorOpts = opts;
+
+      let mejorRegion, mejorOpcion;
+      for (let region of sinAsignar) {
+        const opcion = asignarFlechas(areas[region], tableroAlgoritmo);
+        if (opcion.length === 0) return false;
+        if (!mejorOpcion || opcion.length < mejorOpcion.length) {
+          mejorRegion = region; mejorOpcion = opcion;
         }
       }
-      sinAsignar.delete(mejorR);
-      for (let { x, y, flecha } of mejorOpts) {
-        t[x][y].flecha = flecha;
-        if (esLocalValido(t, x, y) && dfs()) return true;
-        t[x][y].flecha = '';
+      sinAsignar.delete(mejorRegion);
+
+      //{ x, y, flecha } punto (x,y) y su flecha 
+      for (let { x, y, flecha } of mejorOpcion) {
+        tableroAlgoritmo[x][y].flecha = flecha;
+        if (esLocalValido(tableroAlgoritmo, x, y) && dfs()) return true;
+        tableroAlgoritmo[x][y].flecha = '';
       }
-      sinAsignar.add(mejorR);
+      sinAsignar.add(mejorRegion);
       return false;
     };
 
     dfs();
     
-    if (hallado) {
-      return hallado;
-    } else {
-      //alert('No pudo encontrar ninguna solución válida.'); 
-      return null;
-    }
+    return hallado ?? null;
+    
   };
 
   
-useEffect(() => {
-  if (!tablero.length) return;
-  let activo = true;
+  useEffect(() => {
+    if (!tablero.length) return;
+    let activo = true;
 
-  if (onStartResolve) onStartResolve();
+    if (onStartResolve) onStartResolve();
 
-  // Deferimos la ejecución
-  setTimeout(() => {
-    if (!activo) return;
-    const sol = resolverToichika(tablero);
-    if (!activo) return;
+    // Deferimos la ejecución
+    setTimeout(() => {
+      if (!activo) return;
+      const solucion = resolverToichika(tablero);
 
-    if (sol){
-      setSolucion(sol);
-      if (onEndResolve) onEndResolve();
-    }else {
-      console.error("¡El tablero no tiene solución!");
-      if (onEndResolve) onEndResolve();
-      onSolucionInvalida();
-    }
+      if (solucion){
+        setSolucion(solucion);
+        if (onEndResolve) onEndResolve();
+      }else {
+        console.error("¡El tablero no tiene solución!");
+        if (onEndResolve) onEndResolve();
+        onSolucionInvalida();
+      }
 
-  }, 0);
+    }, 0);
 
-  return () => { activo = false };
-}, [tablero, onSolucionInvalida, onStartResolve, onEndResolve]);
+    return () => { activo = false };
+  }, [tablero, onSolucionInvalida, onStartResolve, onEndResolve]);
 
   return (
     <div style={{ margin: 20, padding: 20, border: '1px solid #ccc' }}>
