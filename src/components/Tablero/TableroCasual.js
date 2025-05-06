@@ -10,6 +10,7 @@ function TableroCasual() {
  // const [numRegiones, setNumRegiones] = useState(8);
 
   const [tableroState, setTableroState] = useState([]);
+  const [tableroGenerado, setTableroGenerado] = useState([]);
   const [mostrarSolver, setMostrarSolver] = useState(false);
   
   const [cargando, setCargando] = useState(false);  
@@ -28,6 +29,7 @@ function TableroCasual() {
   };
 
   const onGenerado = useCallback(tab => {
+    setTableroGenerado(tab);
     setTableroState(tab);
   }, []);
 
@@ -63,20 +65,25 @@ function TableroCasual() {
 
   
   useEffect(() => {
-    if (!tableroState.length) return;
+    if (!tableroGenerado.length) return;
 
-    if (esValida(tableroState)) {
+    if (esValida(tableroGenerado)) {
       console.log('Tablero válido generado en', intentos + 1, 'intentos');
       setIntentos(0); 
+      setCargando(false);
+
+      setTableroState(tableroGenerado);
     } else {
       if (intentos < MAX_INTENTOS - 1) {
         setIntentos(i => i + 1);
         setRegenKey(k => k + 1);
       } else {
+        setCargando(false);
         alert(`No hemos encontrado un tablero con solución tras ${MAX_INTENTOS} intentos.\nPrueba a cambiar el tamaño o reiniciar.`);
+        setIntentos(0);
       }
     }
-  }, [regenKey]);
+  }, [tableroGenerado]);
 
 
   return (
@@ -109,7 +116,6 @@ function TableroCasual() {
       <Tablero
         key={regenKey}
         size={size}
-        //onTableroGenerado={memorizedSetTablero}
         onTableroGenerado={onGenerado}
         onTableroChange={onCambio}
       />

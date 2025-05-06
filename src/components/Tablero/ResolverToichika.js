@@ -19,6 +19,28 @@ function buscarFlechaEnDireccion(tablero, f) {
   return null;
 }
 
+function calcularAdyacencias(tablero) {
+  const ady = {};
+  const filas = tablero.length, cols = tablero[0].length;
+  for (let i = 0; i < filas; i++) {
+    for (let j = 0; j < cols; j++) {
+      const r = tablero[i][j].region;
+      if (!ady[r]) ady[r] = new Set();
+      const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+      for (let [dx,dy] of dirs) {
+        const ni = i+dx, nj = j+dy;
+        if (ni >= 0 && nj >=0 && ni<filas && nj<cols) {
+          const r2 = tablero[ni][nj].region;
+          if (r2 !== r) {
+            ady[r].add(r2);
+          }
+        }
+      }
+    }
+  }
+  return ady; // { regionId: Set([...regiones vecinas]), … }
+}
+
 /*function sonAdyacentes(f1, f2) {
   return Math.abs(f1.x - f2.x) + Math.abs(f1.y - f2.y) === 1;
 }*/
@@ -75,6 +97,8 @@ export function esValida(tablero) {
     usado.add(f.region);
   }
 
+  const adyacencias = calcularAdyacencias(tablero);
+
   //Se buscan los pares de flechas
   const emparejadas = new Set();
   for (let f of flechas) {
@@ -83,6 +107,9 @@ export function esValida(tablero) {
     const objetivo = buscarFlechaEnDireccion(tablero, f);
     if (!objetivo) return false;
     if (objetivo.flecha !== direccionOpuesta(f.flecha)) return false;
+    if (adyacencias[f.region].has(objetivo.region)) {
+      return false;
+    }
     //if (sonAdyacentes(f, objetivo)) return false;
     if (!haySeparacionDeRegion(f, objetivo, tablero)) return false;
     emparejadas.add(id);
@@ -121,6 +148,8 @@ function esLocalValido(tablero, x, y) {
   if (!vecino) return true;
   if (vecino.flecha !== direccionOpuesta(f.flecha)) return false;
   if (!haySeparacionDeRegion(f, vecino, tablero)) return false;
+  const ady = calcularAdyacencias(tablero);
+  if (ady[region].has(vecino.region)) return false;
   return true;
 }
 
@@ -215,7 +244,7 @@ function Resolver({ tablero, onSolucionInvalida, onStartResolve, onEndResolve })
                  style={{
                    width:50, height:50,
                    display:'flex', alignItems:'center', justifyContent:'center',
-                   backgroundColor:`hsl(${celda.region*40},70%,90%)`,
+                   backgroundColor:`hsl(${celda.region*30},80%,75%)`,
                    border:'1px solid #666'
                  }}>
               {celda.flecha}

@@ -102,7 +102,7 @@ const obtenerSiguienteFlecha = (actual) => {
   return FLECHAS[(index + 1) % FLECHAS.length];
 };
 
-function Tablero({size, onTableroGenerado}){
+function Tablero({size, onTableroGenerado, onTableroChange}){
   const [tablero, setTablero] = useState([]);
 
   const manejarClickCelda = (x, y) => {
@@ -115,39 +115,20 @@ function Tablero({size, onTableroGenerado}){
         )
       );
 
-      onTableroGenerado(nuevoTablero);
+      if (onTableroChange) onTableroChange(nuevoTablero);
       return nuevoTablero;
     });
   };
 
   const generarTablero = useCallback(() => {
-    //if( size !== 6 ){
-      //console.error("Solo se admite tamaño 6 en este tablero predefinido");
-      //return Array.from({ length: size }, () => 
-      //Array.from({ length: size }, () => ({ region: 0, flecha: '' })));
-    //}
-  
-      /*const nuevoTablero = tableroPredefinido.map(row => 
-        row.map(celda => ({
-          region: celda.region,
-          flecha: ''
-        }))
-      );*/
-      
     const nuevoTablero = generarRegionesAleatorias(size, size, 10);
-      
-      //nuevoTablero[0][5].flecha = '↓';
-      //nuevoTablero[1][4].flecha = '←';
-      //nuevoTablero[3][4].flecha = '←';
-      //nuevoTablero[5][2].flecha = '↑';
-  
     return nuevoTablero;
-  }, [size]); // Añade la dependencia
+  }, [size]);
   
   useEffect(() => {
     const nuevoTablero = generarTablero();
     setTablero(nuevoTablero);
-    onTableroGenerado(nuevoTablero); 
+    if(onTableroGenerado) onTableroGenerado(nuevoTablero);
   }, [generarTablero, onTableroGenerado]);
  
   const getBordeEstilo = useCallback((x, y) => {
