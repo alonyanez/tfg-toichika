@@ -1,11 +1,16 @@
 //import './App.css';
 import Tablero from './Tablero';
-import Resolver from './ResolverToichika';
-import { esValida, encontrarAreas } from './ResolverToichika';
+import { esValida, encontrarAreas, obtenerSolucion } from './ResolverToichika';
 import React, { useState, useCallback, useEffect } from 'react';
 
 function TableroCasual() {
   const [size, setSize] = useState(6);
+
+  const [tableroAMostrar, setTableroAMostrar] = useState(null);
+  const [cargandoTablero, setCargandoTablero] = useState(true);
+  const [tableroListo, setTableroListo] = useState(false);
+  
+  const [tableroSolucion, setTableroSolucion] = useState(null);
 
  // const [numRegiones, setNumRegiones] = useState(8);
 
@@ -16,21 +21,15 @@ function TableroCasual() {
   const [cargando, setCargando] = useState(false);  
   const [regenKey, setRegenKey] = useState(0);
   const [intentos, setIntentos] = useState(0);
-  const MAX_INTENTOS = 50;
+  const MAX_INTENTOS = 100;
 
-
-
-  const handleStartResolve = () => {
-    setCargando(true);
-  };
-
-  const handleEndResolve = () => {
-    setCargando(false);
-  };
+  useEffect(() => {
+    setCargandoTablero(true);
+    setTableroListo(false);
+  }, [regenKey]);
 
   const onGenerado = useCallback(tab => {
     setTableroGenerado(tab);
-    setTableroState(tab);
   }, []);
 
   const onCambio = useCallback(tab => {
@@ -42,10 +41,10 @@ function TableroCasual() {
       const tieneFlecha = tableroState.some(fila =>
         fila.some(celda => !!celda.flecha) 
       );
-      if (!tieneFlecha) {
-        alert('Por favor, coloque al menos una flecha para poder ofrecer la mejor solución.');
-        return;
-      }
+      //if (!tieneFlecha) {
+      //  alert('Por favor, coloque al menos una flecha para poder ofrecer la mejor solución.');
+      //  return;
+      //}
     }
     setMostrarSolver(v => !v);
   };
@@ -59,30 +58,44 @@ function TableroCasual() {
       return;
     }
 
-    const valido = esValida(tableroState);
-    alert(valido ? '¡Solución válida!' : 'Solución inválida.');
+    if (esValida(tableroState)) {
+      alert('¡Solución válida!');
+      setMostrarSolver(true);
+    } else {
+      alert('Solución inválida.');
+    }
   };
 
   
   useEffect(() => {
     if (!tableroGenerado.length) return;
-
-    if (esValida(tableroGenerado)) {
-      console.log('Tablero válido generado en', intentos + 1, 'intentos');
-      setIntentos(0); 
-      setCargando(false);
-
-      setTableroState(tableroGenerado);
-    } else {
+  
+    const solucion = obtenerSolucion(tableroGenerado);
+  
+    if (!solucion) {
       if (intentos < MAX_INTENTOS - 1) {
         setIntentos(i => i + 1);
         setRegenKey(k => k + 1);
       } else {
         setCargando(false);
-        alert(`No hemos encontrado un tablero con solución tras ${MAX_INTENTOS} intentos.\nPrueba a cambiar el tamaño o reiniciar.`);
+        alert(`No hemos encontrado un tablero resoluble tras ${MAX_INTENTOS} intentos.`);
         setIntentos(0);
       }
+      return;
     }
+
+    setTableroSolucion(solucion);
+    const tableroLimpio = solucion.map(fila =>
+      fila.map(celda => ({...celda, flecha: '' })) );
+  
+    console.log('Tablero limpio a pintar:', tableroLimpio);
+  
+    setTableroAMostrar(tableroLimpio);
+    setTableroListo(true);
+    setIntentos(0);
+    setCargando(false);
+    setCargandoTablero(false);
+  
   }, [tableroGenerado]);
 
 
@@ -113,12 +126,27 @@ function TableroCasual() {
        
        
       </div>
-      <Tablero
-        key={regenKey}
-        size={size}
-        onTableroGenerado={onGenerado}
-        onTableroChange={onCambio}
-      />
+
+      {cargandoTablero && (
+        <div style={{ textAlign: 'center', margin: '10px' }}>
+          <span>Cargando tablero…</span>
+        </div>
+      )}
+
+      <div
+        style={{
+          visibility: tableroListo ? 'visible' : 'hidden',
+          pointerEvents: tableroListo ? 'auto' : 'none'
+        }}
+      >
+        <Tablero
+          key={regenKey}
+          size={size}
+          onTableroGenerado={onGenerado}
+          onTableroChange={onCambio}
+          tableroInicial={tableroAMostrar}
+        />
+      </div>
 
       <div style={{ textAlign: 'center', margin: '20px 0' }}>
         <button
@@ -142,17 +170,36 @@ function TableroCasual() {
         </div>
       )}
 
-      {mostrarSolver && (
-        <Resolver
-          tablero={tableroState}
-          onStartResolve={handleStartResolve}
-          onEndResolve={handleEndResolve}
-          onSolucionInvalida={() => {
-            handleEndResolve();
-            alert('No pudo encontrar ninguna solución válida con esta combinación de flechas.');
-            setMostrarSolver(false);
-        }}
-      />
+      { mostrarSolver && tableroSolucion && (
+        <div style={{ margin: 20, padding: 20, border: '1px solid #ccc' }}>
+          <h3>Solución propuesta:</h3>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${tableroSolucion[0].length}, 50px)`,
+            gap: '2px',
+            justifyContent: 'center'
+          }}>
+            {tableroSolucion.map((fila, x) =>
+              fila.map((celda, y) => (
+                <div
+                  key={`${x}-${y}`}
+                  style={{
+                    width: 50,
+                    height: 50,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: `hsl(${celda.region * 30}, 80%, 75%)`,
+                    border: '1px solid #666',
+                    fontSize: '24px'
+                  }}
+                >
+                  {celda.flecha}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       )}
 
       <br/>
@@ -162,30 +209,3 @@ function TableroCasual() {
 }
 
 export default TableroCasual;
-
-
- /*<label style={{ marginRight: '8px' }}>
-          Tamaño:
-          <select
-            value={size}
-            onChange={e => setSize(parseInt(e.target.value, 10))}
-            style={{ marginLeft: '4px' }}
-          >
-            {[4, 5, 6, 7, 8].map(n => (
-              <option key={n} value={n}>{n}×{n}</option>
-            ))}
-          </select>
-        </label>
-        
-         <label style={{ marginLeft: '16px' }}>
-          Regiones:
-          <select
-            value={numRegiones}
-            onChange={e => setNumRegiones(parseInt(e.target.value, 10))}
-            style={{ marginLeft: '4px' }}
-          >
-            {[4, 6, 8, 10].map(r => (
-              <option key={r} value={r}>{r}</option>
-            ))}
-          </select>
-        </label>*/

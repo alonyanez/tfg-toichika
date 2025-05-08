@@ -19,7 +19,7 @@ function buscarFlechaEnDireccion(tablero, f) {
   return null;
 }
 
-function calcularAdyacencias(tablero) {
+export function calcularAdyacencias(tablero) {
   const ady = {};
   const filas = tablero.length, cols = tablero[0].length;
   for (let i = 0; i < filas; i++) {
@@ -38,28 +38,12 @@ function calcularAdyacencias(tablero) {
       }
     }
   }
-  return ady; // { regionId: Set([...regiones vecinas]), … }
+  return ady; 
 }
-
-/*function sonAdyacentes(f1, f2) {
-  return Math.abs(f1.x - f2.x) + Math.abs(f1.y - f2.y) === 1;
-}*/
 
 function direccionOpuesta(flecha) {
   return { '↑': '↓', '↓': '↑', '←': '→', '→': '←' }[flecha];
 }
-
-/*function esAdyacente(regionA, regionB, tablero, x, y) {
-  const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
-  return dirs.some(([dx,dy]) => {
-    const nx = x+dx, ny = y+dy;
-    return (
-      nx >= 0 && ny >= 0 &&
-      nx < tablero.length && ny < tablero[0].length &&
-      tablero[nx][ny].region === regionB
-    );
-  });
-}*/
 
 function haySeparacionDeRegion(f1, f2, tablero) {
   const dx = Math.sign(f2.x - f1.x);
@@ -153,8 +137,51 @@ function esLocalValido(tablero, x, y) {
   return true;
 }
 
+export function obtenerSolucion(tableroOriginal) {
+  const areas = encontrarAreas(tableroOriginal);
+  const regionesVacias = Object.keys(areas)
+    .filter(region => areas[region].every(([x,y]) => tableroOriginal[x][y].flecha === ''))
+    .sort((a,b) => areas[a].length - areas[b].length);
+  const sinAsignar = new Set(regionesVacias);
+
+  const tableroAlgoritmo = tableroOriginal.map(fila => fila.map(celda => ({ ...celda })));
+  let hallado = null;
+
+  function dfs() {
+    if (sinAsignar.size === 0) {
+      if (esValida(tableroAlgoritmo)) {
+        hallado = tableroAlgoritmo.map(fila => fila.map(celda => ({ ...celda })));
+        return true;
+      }
+      return false;
+    }
+    // escogemos región con menos opciones
+    let mejorRegion, mejorOpcion;
+    for (let region of sinAsignar) {
+      const opcion = asignarFlechas(areas[region], tableroAlgoritmo);
+      if (opcion.length === 0) return false;
+      if (!mejorOpcion || opcion.length < mejorOpcion.length) {
+        mejorRegion = region;
+        mejorOpcion = opcion;
+      }
+    }
+    sinAsignar.delete(mejorRegion);
+
+    for (let { x, y, flecha } of mejorOpcion) {
+      tableroAlgoritmo[x][y].flecha = flecha;
+      if (esLocalValido(tableroAlgoritmo, x, y) && dfs()) return true;
+      tableroAlgoritmo[x][y].flecha = '';
+    }
+    sinAsignar.add(mejorRegion);
+    return false;
+  }
+
+  dfs();
+  return hallado;
+}
+
 //Resolver
-function Resolver({ tablero, onSolucionInvalida, onStartResolve, onEndResolve }) {
+export function Resolver({ tablero, onSolucionInvalida, onStartResolve, onEndResolve }) {
   const [solucion, setSolucion] = useState([]);
 
   const resolverToichika = (tableroOriginal) => {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './Tablero.css';
+import { calcularAdyacencias } from './ResolverToichika'
 
 const FLECHAS = ['↑', '→', '↓', '←', ''];
 
@@ -22,6 +23,87 @@ const FLECHAS = ['↑', '→', '↓', '←', ''];
   [{region: 10}, {region: 10}, {region: 10}, {region: 10}, {region: 10}, {region: 10}]
 ];
 */
+
+function apareamientoNoAdyacente(adyacencias) {
+  const regiones = Object.keys(adyacencias).map(n => parseInt(n));
+  const disponibles = new Set(regiones);
+  const pareja = {};
+
+  regiones.sort(() => Math.random() - 0.5);
+
+  for (let r of regiones) {
+    if (!disponibles.has(r)) continue;
+
+    const cand = [...disponibles].filter(s => s !== r && !adyacencias[r].has(s));
+    if (cand.length === 0) {
+
+      return null;
+    }
+    const partner = cand[Math.floor(Math.random() * cand.length)];
+    pareja[r] = partner;
+    pareja[partner] = r;
+    disponibles.delete(r);
+    disponibles.delete(partner);
+  }
+  return pareja; // mapa r → partner
+}
+
+function asignarFlechasSolucion(tablero, pareja) {
+  const R = tablero.length, C = tablero[0].length;
+
+  const celdasPorRegion = {};
+  for (let i = 0; i < R; i++) {
+    for (let j = 0; j < C; j++) {
+      const r = tablero[i][j].region;
+      if (!celdasPorRegion[r]) celdasPorRegion[r] = [];
+      celdasPorRegion[r].push([i,j]);
+    }
+  }
+
+  tablero.forEach(fila => fila.forEach(celda => celda.flecha = ''));
+
+  for (let r in pareja) {
+    if (r > pareja[r]) continue; 
+    const s = pareja[r];
+    const [x1,y1] = celdasPorRegion[r][Math.floor(Math.random() * celdasPorRegion[r].length)];
+    const [x2,y2] = celdasPorRegion[s][Math.floor(Math.random() * celdasPorRegion[s].length)];
+
+    if (x1 === x2) {
+      if (y1 < y2) {
+        tablero[x1][y1].flecha = '→';
+        tablero[x2][y2].flecha = '←';
+      } else {
+        tablero[x1][y1].flecha = '←';
+        tablero[x2][y2].flecha = '→';
+      }
+    } else if (y1 === y2) {
+      if (x1 < x2) {
+        tablero[x1][y1].flecha = '↓';
+        tablero[x2][y2].flecha = '↑';
+      } else {
+        tablero[x1][y1].flecha = '↑';
+        tablero[x2][y2].flecha = '↓';
+      }
+    } else {
+      return false;
+    }
+
+  }
+
+  return true;
+}
+
+export function generarTableroSoluble(filas, columnas, cantidadRegiones) {
+  while (true) {
+    const tablero = generarRegionesAleatorias(filas, columnas, cantidadRegiones);
+    const ady = calcularAdyacencias(tablero);
+    const pareja = apareamientoNoAdyacente(ady);
+    if (!pareja) continue;              // reintentar regiones
+    if (!asignarFlechasSolucion(tablero, pareja)) continue;
+    // ¡Listo, este tablero es soluble por construcción!
+    return tablero;
+  }
+}
 
 function generarRegionesAleatorias(filas, columnas, cantidadRegiones) {
   const tablero = Array.from({ length: filas }, () =>
@@ -67,7 +149,7 @@ function generarRegionesAleatorias(filas, columnas, cantidadRegiones) {
           ([nx, ny]) => tablero[nx][ny].region === -1
         );
 
-        mezclar(candidatos); // Para aleatoriedad
+        mezclar(candidatos); 
 
         if (candidatos.length > 0) {
           const [nx, ny] = candidatos[0];
@@ -102,8 +184,14 @@ const obtenerSiguienteFlecha = (actual) => {
   return FLECHAS[(index + 1) % FLECHAS.length];
 };
 
-function Tablero({size, onTableroGenerado, onTableroChange}){
+function Tablero({size, onTableroGenerado, onTableroChange, tableroInicial }){
   const [tablero, setTablero] = useState([]);
+
+  useEffect(() => {
+    if (tableroInicial && tableroInicial.length) {
+      setTablero(tableroInicial);
+    }
+  }, [tableroInicial]);
 
   const manejarClickCelda = (x, y) => {
     setTablero(prevTablero => {
@@ -121,7 +209,7 @@ function Tablero({size, onTableroGenerado, onTableroChange}){
   };
 
   const generarTablero = useCallback(() => {
-    const nuevoTablero = generarRegionesAleatorias(size, size, 10);
+    const nuevoTablero = generarTableroSoluble(size, size, 10);
     return nuevoTablero;
   }, [size]);
   
