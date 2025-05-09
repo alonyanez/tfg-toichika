@@ -41,10 +41,6 @@ function TableroCasual() {
       const tieneFlecha = tableroState.some(fila =>
         fila.some(celda => !!celda.flecha) 
       );
-      //if (!tieneFlecha) {
-      //  alert('Por favor, coloque al menos una flecha para poder ofrecer la mejor solución.');
-      //  return;
-      //}
     }
     setMostrarSolver(v => !v);
   };
@@ -86,7 +82,8 @@ function TableroCasual() {
 
     setTableroSolucion(solucion);
     const tableroLimpio = solucion.map(fila =>
-      fila.map(celda => ({...celda, flecha: '' })) );
+      fila.map(celda => ({...celda, flecha: '' })) 
+    );
   
     console.log('Tablero limpio a pintar:', tableroLimpio);
   

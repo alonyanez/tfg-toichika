@@ -1,163 +1,144 @@
-//import './App.css';
 import Tablero from './Tablero';
-import { esValida, encontrarAreas } from './ResolverToichika';
+import { esValida, encontrarAreas, obtenerSolucion } from './ResolverToichika';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 
 function TableroCompetitivo() {
-  const [size, setSize] = useState(6);
+  const [size] = useState(6);
+  const [playerName, setPlayerName] = useState('');
 
- // const [numRegiones, setNumRegiones] = useState(8);
-
-  const [tableroState, setTableroState] = useState([]);
   const [regenKey, setRegenKey] = useState(0);
+  const [tableroGenerado, setTableroGenerado] = useState([]);
+  const [tableroAMostrar, setTableroAMostrar] = useState(null);
+  const [tableroListo, setTableroListo] = useState(false);
+  const [cargandoTablero, setCargandoTablero] = useState(false);
+
   const [intentos, setIntentos] = useState(0);
-  const MAX_INTENTOS = 50;
+  const MAX_INTENTOS = 100;
 
-   const [tiempo, setTiempo] = useState(0); // segundos
-   const [corriendo, setCorriendo] = useState(false);
-   const intervaloRef = useRef(null);
+  const [tiempo, setTiempo] = useState(0);
+  const [corriendo, setCorriendo] = useState(false);
+  const intervaloRef = useRef(null);
 
-   const [playerName, setPlayerName] = useState('');
-
-   const [scores, setScores] = useState(() => {
+  const [scores, setScores] = useState(() => {
     const saved = localStorage.getItem('toichika_scores_compet');
     return saved ? JSON.parse(saved) : [];
   });
-
   useEffect(() => {
     localStorage.setItem('toichika_scores_compet', JSON.stringify(scores));
   }, [scores]);
 
+  // Controla inicio y parada del cronómetro
+  useEffect(() => {
+    if (corriendo) {
+      intervaloRef.current = setInterval(() => {
+        setTiempo(t => t + 1);
+      }, 1000);
+    } else {
+      clearInterval(intervaloRef.current);
+    }
+    return () => clearInterval(intervaloRef.current);
+  }, [corriendo]);
 
-   const handleStartTimer = () => {
-    if (corriendo) return;
-    // Reiniciar el tablero al empezar el tiempo
-    handleResetTimer();
+  // Dispara generación de tablero al pulsar inicio
+  const handleStart = () => {
+    if (cargandoTablero) return;
+    // Reiniciar estados
+    setTiempo(0);
+    setTableroListo(false);
+    setTableroAMostrar(null);
+    setTableroGenerado([]);
     setIntentos(0);
+    setCargandoTablero(true);
+    // Generar tablero
     setRegenKey(k => k + 1);
-
-    // Iniciar contador
-    setCorriendo(true);
-    intervaloRef.current = setInterval(() => {
-      setTiempo(t => t + 1);
-    }, 1000);
   };
 
-  const handleStopTimer = () => {
+  const handlePause = () => setCorriendo(false);
+  const handleReset = () => {
     setCorriendo(false);
-    clearInterval(intervaloRef.current);
-  };
-
-  const handleResetTimer = () => {
-    handleStopTimer();
     setTiempo(0);
   };
 
-
   const onGenerado = useCallback(tab => {
-    setTableroState(tab);
+    setTableroGenerado(tab);
   }, []);
+  const [tableroState, setTableroState] = useState([]);
+  const onCambio = useCallback(tab => setTableroState(tab), []);
 
-  const onCambio = useCallback(tab => {
-    setTableroState(tab);
-  }, []);
-
-
-  const comprobarSolucion = () => {
-    handleStopTimer();
-
-    const flechasPuestas = tableroState.flat().filter(c => c.flecha).length;
-    const regionCount = Object.keys(encontrarAreas(tableroState)).length;
-
-    if (flechasPuestas < regionCount) {
-      alert(`Debes colocar ${regionCount} flechas. Ahora llevas ${flechasPuestas}.`);
-      return;
-    }
-
-    const valido = esValida(tableroState);
-
-    // Calculamos la puntuación según el tiempo (cuanto menor, mejor)
-    // Por ejemplo, base 1000 puntos menos 10 por segundo
-    const score = Math.max(0, 1000 - tiempo * 10);
-
-    if (valido) {
-    const entry = { name: playerName || 'Anon', score, time: formatoTiempo(), date: new Date().toISOString() };
-      setScores(prev => [...prev, entry]);
-      alert(`¡Solución válida! Tiempo: ${formatoTiempo()}. Puntuación: ${score}`);
-    } else {
-      alert(`Solución inválida. Tiempo: ${formatoTiempo()}. Puntuación: 0`);
-    }
-  };
-
-  
+  // Procesa generación: obtiene solución, limpia y muestra
   useEffect(() => {
-    if (!tableroState.length) return;
-
-    if (esValida(tableroState)) {
-      console.log('Tablero válido generado en', intentos + 1, 'intentos');
-      setIntentos(0); 
-    } else {
+    if (!cargandoTablero || !tableroGenerado.length) return;
+    const solucion = obtenerSolucion(tableroGenerado);
+    if (!solucion) {
       if (intentos < MAX_INTENTOS - 1) {
         setIntentos(i => i + 1);
         setRegenKey(k => k + 1);
       } else {
-        alert(`No hemos encontrado un tablero con solución tras ${MAX_INTENTOS} intentos.\nPrueba a cambiar el tamaño o reiniciar.`);
+        alert(`No encontramos tablero resoluble tras ${MAX_INTENTOS} intentos.`);
+        setCargandoTablero(false);
       }
+      return;
     }
-  }, [regenKey]);
+    const limpio = solucion.map(f => f.map(c => ({ ...c, flecha: '' })));
+    setTableroAMostrar(limpio);
+    setTableroListo(true);
+    setCargandoTablero(false);
+    setCorriendo(true);
+  }, [tableroGenerado, intentos, cargandoTablero]);
 
-
-  // Limpieza del temporizador al desmontar
-  useEffect(() => {
-    return () => clearInterval(intervaloRef.current);
-  }, []);
-
-  const formatoTiempo = () => {
-    const mm = String(Math.floor(tiempo / 60)).padStart(2, '0');
-    const ss = String(tiempo % 60).padStart(2, '0');
-    return `${mm}:${ss}`;
+  const formato = () => {
+    const m = String(Math.floor(tiempo / 60)).padStart(2, '0');
+    const s = String(tiempo % 60).padStart(2, '0');
+    return `${m}:${s}`;
   };
 
+  const comprobar = () => {
+    setCorriendo(false);
+    const flechas = tableroState.flat().filter(c => c.flecha).length;
+    const regiones = Object.keys(encontrarAreas(tableroState)).length;
+    if (flechas < regiones) {
+      return alert(`Debes colocar ${regiones} flechas. Llevas ${flechas}.`);
+    }
+    const valido = esValida(tableroState);
+    const score = Math.max(0, 1000 - tiempo * 10);
+    if (valido) {
+      const e = { name: playerName || 'Anon', score, time: formato(), date: new Date().toISOString() };
+      setScores(s => [...s, e]);
+      alert(`¡Válido! Tiempo: ${formato()}. Puntos: ${score}`);
+    } else {
+      alert(`Inválido. Tiempo: ${formato()}. Puntos: 0`);
+    }
+  };
 
   return (
-    <div >
-      <h1  style={{ textAlign: 'center'}}>Tablero de Toichika</h1>
-
-      <div style={{ textAlign: 'center', margin: '10px' }}>
-        <label style={{ marginRight: 8 }}>
-          Nombre: <input type="text" value={playerName} onChange={e => setPlayerName(e.target.value)} />
-        </label>
+    <div style={{ textAlign: 'center' }}>
+      <h1>Tablero Competitive</h1>
+      <div>
+        <label>Nombre: <input value={playerName} onChange={e => setPlayerName(e.target.value)} /></label>
       </div>
-
-      <div style={{ textAlign: 'center', margin: '10px 0' }}>
-        <span style={{ fontSize: '1.2rem', marginRight: '8px' }}>Tiempo: {formatoTiempo()}</span>
-        <div>
-            <button onClick={handleStartTimer} disabled={corriendo} style={{ marginRight: 8 }}>Empezar a jugar</button>
-            <button onClick={handleStopTimer} disabled={!corriendo} style={{ marginRight: 8 }}>Pausar</button>
-            <button onClick={handleResetTimer}>Reiniciar</button>
-        </div>
+      <div style={{ margin: '10px 0' }}>
+        <span>Tiempo: {formato()}</span>
       </div>
-
-      <Tablero
-        key={regenKey}
-        size={size}
-        onTableroGenerado={onGenerado}
-        onTableroChange={onCambio}
-      />
-
-      <div style={{ textAlign: 'center', margin: '20px 0' }}>
-        <button
-          onClick={comprobarSolucion}
-          style={{ marginRight: 10, padding: '8px 16px', cursor: 'pointer' }}
-        >
-          Comprobar Solución
-        </button>
-
+      <div>
+        <button onClick={handleStart} disabled={cargandoTablero}>Empezar</button>
+        <button onClick={handlePause} disabled={!corriendo}>Pausar</button>
+        <button onClick={handleReset}>Reiniciar</button>
       </div>
-
-      <br/>
-      
-   </div>
+      {cargandoTablero && <p>Cargando tablero…</p>}
+      {/* Siempre renderizamos Tablero (oculto/habilitado según estado) */}
+      <div style={{ visibility: tableroListo ? 'visible' : 'hidden', pointerEvents: tableroListo ? 'auto' : 'none', margin: '20px auto' }}>
+        <Tablero
+          key={regenKey}
+          size={size}
+          onTableroGenerado={onGenerado}
+          onTableroChange={onCambio}
+          tableroInicial={tableroAMostrar}
+        />
+      </div>
+      <div style={{ margin: '20px 0' }}>
+        <button onClick={comprobar} disabled={!tableroListo}>Comprobar Solución</button>
+      </div>
+    </div>
   );
 }
 

@@ -172,7 +172,6 @@ function generarRegionesAleatorias(filas, columnas, cantidadRegiones) {
   }
 
   if (celdasAsignadas < totalCeldas) {
-    console.warn("No se pudo completar el tablero, reintentando...");
     return generarRegionesAleatorias(filas, columnas, cantidadRegiones);
   }
 
