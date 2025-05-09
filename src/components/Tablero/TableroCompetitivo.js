@@ -27,7 +27,6 @@ function TableroCompetitivo() {
     localStorage.setItem('toichika_scores_compet', JSON.stringify(scores));
   }, [scores]);
 
-  // Controla inicio y parada del cronómetro
   useEffect(() => {
     if (corriendo) {
       intervaloRef.current = setInterval(() => {
@@ -39,17 +38,16 @@ function TableroCompetitivo() {
     return () => clearInterval(intervaloRef.current);
   }, [corriendo]);
 
-  // Dispara generación de tablero al pulsar inicio
   const handleStart = () => {
     if (cargandoTablero) return;
-    // Reiniciar estados
+
     setTiempo(0);
     setTableroListo(false);
     setTableroAMostrar(null);
     setTableroGenerado([]);
     setIntentos(0);
     setCargandoTablero(true);
-    // Generar tablero
+
     setRegenKey(k => k + 1);
   };
 
@@ -65,7 +63,6 @@ function TableroCompetitivo() {
   const [tableroState, setTableroState] = useState([]);
   const onCambio = useCallback(tab => setTableroState(tab), []);
 
-  // Procesa generación: obtiene solución, limpia y muestra
   useEffect(() => {
     if (!cargandoTablero || !tableroGenerado.length) return;
     const solucion = obtenerSolucion(tableroGenerado);
@@ -125,7 +122,7 @@ function TableroCompetitivo() {
         <button onClick={handleReset}>Reiniciar</button>
       </div>
       {cargandoTablero && <p>Cargando tablero…</p>}
-      {/* Siempre renderizamos Tablero (oculto/habilitado según estado) */}
+
       <div style={{ visibility: tableroListo ? 'visible' : 'hidden', pointerEvents: tableroListo ? 'auto' : 'none', margin: '20px auto' }}>
         <Tablero
           key={regenKey}
