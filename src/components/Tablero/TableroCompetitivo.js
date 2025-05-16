@@ -108,32 +108,44 @@ function TableroCompetitivo() {
   };
 
   return (
-    <div style={{ textAlign: 'center' }}>
-      <h1>Tablero Competitive</h1>
-      <div>
-        <label>Nombre: <input value={playerName} onChange={e => setPlayerName(e.target.value)} /></label>
-      </div>
-      <div style={{ margin: '10px 0' }}>
-        <span>Tiempo: {formato()}</span>
-      </div>
-      <div>
-        <button onClick={handleStart} disabled={cargandoTablero}>Empezar</button>
-        <button onClick={handlePause} disabled={!corriendo}>Pausar</button>
-        <button onClick={handleReset}>Reiniciar</button>
-      </div>
-      {cargandoTablero && <p>Cargando tablero…</p>}
+    <div style={{
+          maxWidth: '500px',
+          alignSelf: 'flex-start', 
+          marginTop: '10',
+          margin: '40px auto',
+          padding: '16px',
+          backgroundColor: '#FAF9F7 ',
+          border: '1px solid #CDD4DA',
+          borderRadius: '20px',
+          lineHeight: '1.5',
+          color:'#2E2E2E'}}>
+      <div style={{ textAlign: 'center' }}>
+        <h1>Tablero Competitivo</h1>
+        <div>
+          <label>Nombre: <input value={playerName} onChange={e => setPlayerName(e.target.value)} /></label>
+        </div>
+        <div style={{ margin: '10px 0' }}>
+          <span>Tiempo: {formato()}</span>
+        </div>
+        <div>
+          <button onClick={handleStart} disabled={cargandoTablero}>Empezar</button>
+          <button onClick={handlePause} disabled={!corriendo}>Pausar</button>
+          <button onClick={handleReset}>Reiniciar</button>
+        </div>
+        {cargandoTablero && <p>Cargando tablero…</p>}
 
-      <div style={{ visibility: tableroListo ? 'visible' : 'hidden', pointerEvents: tableroListo ? 'auto' : 'none', margin: '20px auto' }}>
-        <Tablero
-          key={regenKey}
-          size={size}
-          onTableroGenerado={onGenerado}
-          onTableroChange={onCambio}
-          tableroInicial={tableroAMostrar}
-        />
-      </div>
-      <div style={{ margin: '20px 0' }}>
-        <button onClick={comprobar} disabled={!tableroListo}>Comprobar Solución</button>
+        <div style={{ visibility: tableroListo ? 'visible' : 'hidden', pointerEvents: tableroListo ? 'auto' : 'none', margin: '20px auto' }}>
+          <Tablero
+            key={regenKey}
+            size={size}
+            onTableroGenerado={onGenerado}
+            onTableroChange={onCambio}
+            tableroInicial={tableroAMostrar}
+          />
+        </div>
+        <div style={{ margin: '20px 0' }}>
+          <button onClick={comprobar} disabled={!tableroListo}>Comprobar Solución</button>
+        </div>
       </div>
     </div>
   );

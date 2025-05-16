@@ -284,6 +284,8 @@ function Tablero({size, onTableroGenerado, onTableroChange, tableroInicial }){
                 fontSize: '24px', 
                 backgroundColor: `hsl(${celda.region * 30}, 80%, 75%)`,
                 ...getBordeEstilo(x, y)
+                ,
+                    color:'#121213'
               }}
             >
               {celda.flecha}

@@ -1,7 +1,7 @@
 //import './App.css';
 import Tablero from './Tablero';
 import { esValida, encontrarAreas, obtenerSolucion } from './ResolverToichika';
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 function TableroCasual() {
   const [size, setSize] = useState(6);
@@ -97,111 +97,138 @@ function TableroCasual() {
 
 
   return (
-    <div >
-      <div style={{
-        maxWidth: '500px',
-        marginTop: '10',
-        margin: '40px auto',
-        padding: '16px',
-        backgroundColor: '#f9f9f9',
-        border: '1px solid #ccc',
-        borderRadius: '8px',
-        lineHeight: '1.5'
-      }}>
-        <h2 style={{ textAlign: 'center'}}>Reglas de Toichika</h2>
-        <ol>
-          <li>Sólo puede haber una flecha por región.</li>
-          <li>Cada flecha tiene una pareja, que se apuntan entre sí.</li>
-          <li>Los pares de flechas no pueden estar en regiones adyacentes.</li>
-          <li>No puede haber ninguna flecha en medio de un par de flechas.</li>
-        </ol>
-      </div>
+    <div style={{
+      display: 'flex',           
+      gap: '20px',}}>
 
-      <h1  style={{ textAlign: 'center'}}>Tablero de Toichika</h1>
-
-      <div style={{ textAlign: 'center', margin: '10px 0' }}>
+      <div style={{flex: '1', color:'#252422'}}>
+        <div style={{ maxWidth: '500px',
+          alignSelf: 'flex-start', 
+          marginTop: '10',
+          margin: '40px auto',
+          padding: '16px',
+          backgroundColor: '#FAF9F7',
+          border: '1px solid #CDD4DA',
+          borderRadius: '20px',
+          lineHeight: '1.5',
+          color:'#252323'}}>
+          <h1  style={{ textAlign: 'center'}}>Tablero de Toichika</h1>
        
-       
-      </div>
+          <div style={{ textAlign: 'center', margin: '10px 0' }}></div>
 
-      {cargandoTablero && (
-        <div style={{ textAlign: 'center', margin: '10px' }}>
-          <span>Cargando tablero…</span>
-        </div>
-      )}
+          {cargandoTablero && (
+            <div style={{ textAlign: 'center', margin: '10px' }}>
+              <span>Cargando tablero…</span>
+            </div>
+          )}
 
-      <div
-        style={{
-          visibility: tableroListo ? 'visible' : 'hidden',
-          pointerEvents: tableroListo ? 'auto' : 'none'
-        }}
-      >
-        <Tablero
-          key={regenKey}
-          size={size}
-          onTableroGenerado={onGenerado}
-          onTableroChange={onCambio}
-          tableroInicial={tableroAMostrar}
-        />
-      </div>
-
-      <div style={{ textAlign: 'center', margin: '20px 0' }}>
-        <button
-          onClick={comprobarSolucion}
-          style={{ marginRight: 10, padding: '8px 16px', cursor: 'pointer' }}
-        >
-          Comprobar Solución
-        </button>
-
-        <button
-          onClick={handleMostrarSolver}
-          style={{ padding: '8px 16px', cursor: 'pointer' }}
-        >
-          {mostrarSolver ? 'Ocultar Solución' : 'Mostrar Solución'}
-        </button>
-      </div>
-
-      {cargando && (
-        <div style={{ textAlign: 'center', margin: '10px' }}>
-          <span>Resolviendo…</span>
-        </div>
-      )}
-
-      { mostrarSolver && tableroSolucion && (
-        <div style={{ margin: 20, padding: 20, border: '1px solid #ccc' }}>
-          <h3>Solución propuesta:</h3>
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${tableroSolucion[0].length}, 50px)`,
-            gap: '2px',
-            justifyContent: 'center'
-          }}>
-            {tableroSolucion.map((fila, x) =>
-              fila.map((celda, y) => (
-                <div
-                  key={`${x}-${y}`}
-                  style={{
-                    width: 50,
-                    height: 50,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: `hsl(${celda.region * 30}, 80%, 75%)`,
-                    border: '1px solid #666',
-                    fontSize: '24px'
-                  }}
-                >
-                  {celda.flecha}
-                </div>
-              ))
-            )}
+              visibility: tableroListo ? 'visible' : 'hidden',
+              pointerEvents: tableroListo ? 'auto' : 'none' }}>
+            <Tablero
+              key={regenKey}
+              size={size}
+              onTableroGenerado={onGenerado}
+              onTableroChange={onCambio}
+              tableroInicial={tableroAMostrar}
+            />
           </div>
-        </div>
-      )}
 
-      <br/>
+          <br></br>
+          <br></br>
+          <br></br>
+        </div>  
+      </div>
       
-   </div>
+        
+      <div style={{flex: '1',}}>
+        <div style={{
+          maxWidth: '500px',
+          alignSelf: 'flex-start', 
+          marginTop: '10',
+          margin: '40px auto',
+          padding: '16px',
+          backgroundColor: '#FAF9F7 ',
+          border: '1px solid #CDD4DA',
+          borderRadius: '20px',
+          lineHeight: '1.5',
+          color:'#2E2E2E'}}>
+            
+          <h2 style={{ textAlign: 'center'}}>Reglas de Toichika</h2>
+          <ol>
+            <li>Sólo puede haber una flecha por región.</li>
+            <li>Cada flecha tiene una pareja, que se apuntan entre sí.</li>
+            <li>Los pares de flechas no pueden estar en regiones adyacentes.</li>
+            <li>No puede haber ninguna flecha en medio de un par de flechas.</li>
+          </ol>
+          <hr></hr>
+          <h2 style={{ textAlign: 'center'}}>Botones</h2>
+
+          <div style={{ textAlign: 'center', margin: '20px 0' }}>
+            <button
+              onClick={comprobarSolucion}
+              style={{ 
+                marginRight: 10, 
+                padding: '8px 16px', 
+                cursor: 'pointer', 
+                backgroundColor: '#5A5A5A',
+                color:'#FAF9F7', 
+                fontWeight: 'bold',
+                borderRadius: '15px' }}
+            >
+              Comprobar Solución
+            </button>
+
+            <button
+              onClick={handleMostrarSolver}
+              style={{ 
+                padding: '8px 16px', 
+                cursor: 'pointer', 
+                fontWeight: 'bold',
+                backgroundColor: '#5A5A5A',
+                color:'#FAF9F7',
+                borderRadius: '15px', }}
+            >
+              {mostrarSolver ? 'Ocultar Solución' : 'Mostrar Solución'}
+            </button>
+          </div>
+
+
+          { mostrarSolver && tableroSolucion && (
+            <div style={{ margin: 20, padding: 20, border: '1px solid #ccc', borderColor: '#252422', borderRadius: '8px', backgroundColor: '#5A5A5A' }}>
+              <h3 style={{color:'#FAF9F7', textAlign: 'center'}}>Solución propuesta</h3>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${tableroSolucion[0].length}, 50px)`,
+                gap: '2px',
+                justifyContent: 'center'
+              }}>
+                {tableroSolucion.map((fila, x) =>
+                  fila.map((celda, y) => (
+                    <div
+                      key={`${x}-${y}`}
+                      style={{
+                        width: 50,
+                        height: 50,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: `hsl(${celda.region * 30}, 80%, 75%)`,
+                        border: '1px solid #666',
+                        fontSize: '24px',
+                      }}
+                    >
+                      {celda.flecha}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+          
+      </div>    
+    </div>
   );
 }
 
