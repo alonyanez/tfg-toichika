@@ -11,6 +11,7 @@ function App() {
           <nav className="nav">
               <Link to="/casual"><button style={{ 
                     marginRight: 10, 
+                    marginTop: 10,
                     padding: '8px 16px', 
                     cursor: 'pointer', 
                     backgroundColor: '#5A5A5A',
@@ -19,7 +20,8 @@ function App() {
                     borderRadius: '15px' }}
                 >Tablero Casual</button></Link>
               <Link to="/competitivo"><button style={{ 
-                    marginRight: 10, 
+                    marginRight: 10,
+                    marginTop: 10, 
                     padding: '8px 16px', 
                     cursor: 'pointer', 
                     backgroundColor: '#5A5A5A',
@@ -27,7 +29,8 @@ function App() {
                     fontWeight: 'bold',
                 borderRadius: '15px' }}>Tablero Competitivo</button></Link>
               <Link to="/ranking"><button style={{ 
-                   marginRight: 10, 
+                   marginRight: 10,
+                   marginTop: 10, 
                     padding: '8px 16px', 
                     cursor: 'pointer', 
                     backgroundColor: '#5A5A5A',

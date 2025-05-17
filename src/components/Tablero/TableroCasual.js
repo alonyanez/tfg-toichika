@@ -1,5 +1,6 @@
-//import './App.css';
+import '../../App.css';
 import Tablero from './Tablero';
+import './TableroCasual.css';
 import { esValida, encontrarAreas, obtenerSolucion } from './ResolverToichika';
 import { useState, useCallback, useEffect } from 'react';
 
@@ -88,6 +89,7 @@ function TableroCasual() {
     console.log('Tablero limpio a pintar:', tableroLimpio);
   
     setTableroAMostrar(tableroLimpio);
+    setTableroState(tableroLimpio);
     setTableroListo(true);
     setIntentos(0);
     setCargando(false);
@@ -97,9 +99,7 @@ function TableroCasual() {
 
 
   return (
-    <div style={{
-      display: 'flex',           
-      gap: '20px',}}>
+    <div className="tablero-casual-container">
 
       <div style={{flex: '1', color:'#252422'}}>
         <div style={{ maxWidth: '500px',

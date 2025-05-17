@@ -1,0 +1,12 @@
+.tablero-casual-container {
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+}
+
+
+@media screen and (max-width: 1024px) {
+  .tablero-casual-container {
+    flex-direction: column;
+  }
+}
