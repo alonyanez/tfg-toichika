@@ -128,9 +128,44 @@ function TableroCompetitivo() {
           <span>Tiempo: {formato()}</span>
         </div>
         <div>
-          <button onClick={handleStart} disabled={cargandoTablero}>Empezar</button>
-          <button onClick={handlePause} disabled={!corriendo}>Pausar</button>
-          <button onClick={handleReset}>Reiniciar</button>
+          <button 
+            style={{ 
+                  marginRight: 10, 
+                  padding: '8px 16px', 
+                  cursor: 'pointer', 
+                  backgroundColor: '#5A5A5A',
+                  color:'#FAF9F7', 
+                  fontWeight: 'bold',
+                  borderRadius: '15px' }}
+            onClick={handleStart} 
+            disabled={cargandoTablero}
+            >Empezar
+          </button>
+          <button 
+            style={{ 
+                  marginRight: 10, 
+                  padding: '8px 16px', 
+                  cursor: 'pointer', 
+                  backgroundColor: '#5A5A5A',
+                  color:'#FAF9F7', 
+                  fontWeight: 'bold',
+                  borderRadius: '15px' }}
+            onClick={handlePause} 
+            disabled={!corriendo}
+            >Pausar
+          </button>
+          <button 
+            style={{ 
+                  marginRight: 10, 
+                  padding: '8px 16px', 
+                  cursor: 'pointer', 
+                  backgroundColor: '#5A5A5A',
+                  color:'#FAF9F7', 
+                  fontWeight: 'bold',
+                  borderRadius: '15px' }} 
+            onClick={handleStart}
+            >Reiniciar
+          </button>
         </div>
         {cargandoTablero && <p>Cargando tablero…</p>}
 
@@ -144,7 +179,19 @@ function TableroCompetitivo() {
           />
         </div>
         <div style={{ margin: '20px 0' }}>
-          <button onClick={comprobar} disabled={!tableroListo}>Comprobar Solución</button>
+          <button 
+            style={{ 
+                  marginRight: 10, 
+                  padding: '8px 16px', 
+                  cursor: 'pointer', 
+                  backgroundColor: '#5A5A5A',
+                  color:'#FAF9F7', 
+                  fontWeight: 'bold',
+                  borderRadius: '15px' }}
+            onClick={comprobar} 
+            disabled={!tableroListo}
+            >Comprobar Solución
+          </button>
         </div>
       </div>
     </div>
