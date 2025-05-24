@@ -105,6 +105,7 @@ export function generarTableroSoluble(filas, columnas, cantidadRegiones) {
   }
 }
 
+
 function generarRegionesAleatorias(filas, columnas, cantidadRegiones) {
   const tablero = Array.from({ length: filas }, () =>
     Array.from({ length: columnas }, () => ({ region: -1, flecha: '' }))

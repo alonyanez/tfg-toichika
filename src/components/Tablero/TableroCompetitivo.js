@@ -15,6 +15,9 @@ function TableroCompetitivo() {
   const [intentos, setIntentos] = useState(0);
   const MAX_INTENTOS = 100;
 
+
+  const [solucionState, setSolucionState] = useState(null);
+
   const [tiempo, setTiempo] = useState(0);
   const [corriendo, setCorriendo] = useState(false);
   const intervaloRef = useRef(null);
@@ -52,6 +55,7 @@ function TableroCompetitivo() {
   };
 
   const handlePause = () => setCorriendo(false);
+
   const handleReset = () => {
     setCorriendo(false);
     setTiempo(0);
@@ -60,6 +64,7 @@ function TableroCompetitivo() {
   const onGenerado = useCallback(tab => {
     setTableroGenerado(tab);
   }, []);
+
   const [tableroState, setTableroState] = useState([]);
   const onCambio = useCallback(tab => setTableroState(tab), []);
 
@@ -97,7 +102,7 @@ function TableroCompetitivo() {
       return alert(`Debes colocar ${regiones} flechas. Llevas ${flechas}.`);
     }
     const valido = esValida(tableroState);
-    const score = Math.max(0, 1000 - tiempo * 10);
+    const score = Math.max(0, 5000 - tiempo * 20);
     if (valido) {
       const e = { name: playerName || 'Anon', score, time: formato(), date: new Date().toISOString() };
       setScores(s => [...s, e]);
@@ -105,6 +110,25 @@ function TableroCompetitivo() {
     } else {
       alert(`Inválido. Tiempo: ${formato()}. Puntos: 0`);
     }
+  };
+
+  const handlePista = () => {
+    if (!solucionState || !tableroListo) return;
+    const vacias = [];
+    tableroState.flat().forEach((celda, idx) => {
+      if (!celda.flecha) vacias.push(idx);
+    });
+    if (vacias.length === 0) return;
+    const idx = vacias[Math.floor(Math.random() * vacias.length)];
+    const fila = Math.floor(idx / size);
+    const col = idx % size;
+    const flechaCorrecta = solucionState[fila][col].flecha;
+    setTableroState(prev => {
+      const copia = prev.map(r => r.map(c => ({ ...c })));
+      copia[fila][col].flecha = flechaCorrecta;
+      return copia;
+    });
+    setTiempo(t => t + 30);
   };
 
   return (
@@ -150,9 +174,8 @@ function TableroCompetitivo() {
                   color:'#FAF9F7', 
                   fontWeight: 'bold',
                   borderRadius: '15px' }}
-            onClick={handlePause} 
-            disabled={!corriendo}
-            >Pausar
+            onClick={handleReset} 
+            >Reiniciar
           </button>
           <button 
             style={{ 

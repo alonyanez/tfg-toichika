@@ -195,7 +195,15 @@ function TableroCasual() {
 
 
           { mostrarSolver && tableroSolucion && (
-            <div style={{ margin: 20, padding: 20, border: '1px solid #ccc', borderColor: '#252422', borderRadius: '8px', backgroundColor: '#5A5A5A' }}>
+            <div style={{ 
+                display: 'inline-block',
+                width: 'fit-content',
+                margin: 20, 
+                padding: 20, 
+                border: '1px solid #ccc', 
+                borderColor: '#252422', 
+                borderRadius: '8px', 
+                backgroundColor: '#5A5A5A' }}>
               <h3 style={{color:'#FAF9F7', textAlign: 'center'}}>Solución propuesta</h3>
               <div style={{
                 display: 'grid',
