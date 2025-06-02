@@ -1,7 +1,7 @@
-import '../../App.css';
-import Tablero from './Tablero';
+import '../../../App.css';
+import Tablero from '../Tablero';
 import './TableroCasual.css';
-import { esValida, encontrarAreas, obtenerSolucion } from './ResolverToichika';
+import { esValida, encontrarAreas, obtenerSolucion } from '../../Resolver/ResolverToichika';
 import { useState, useCallback, useEffect } from 'react';
 
 function TableroCasual() {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './Tablero.css';
-import { calcularAdyacencias } from './ResolverToichika'
+import { calcularAdyacencias } from '../Resolver/ResolverToichika'
 
 const FLECHAS = ['↑', '→', '↓', '←', ''];
 

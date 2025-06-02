@@ -1,5 +1,5 @@
-import Tablero from './Tablero';
-import { esValida, encontrarAreas, obtenerSolucion } from './ResolverToichika';
+import Tablero from '../Tablero';
+import { esValida, encontrarAreas, obtenerSolucion } from '../../Resolver/ResolverToichika';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 
 function TableroCompetitivo() {

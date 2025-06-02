@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import TableroCasual from './components/Tablero/TableroCasual';
-import TableroCompetitivo from './components/Tablero/TableroCompetitivo';
+import TableroCasual from './components/Tablero/Casual/TableroCasual';
+import TableroCompetitivo from './components/Tablero/Competitivo/TableroCompetitivo';
 import Ranking from './components/Tablero/RankingCompetitivo';
 
 function App() {
@@ -44,7 +44,7 @@ function App() {
           <Route path="/casual" element={<TableroCasual />} />
           <Route path="/competitivo" element={<TableroCompetitivo />} />
           <Route path="/ranking" element={<Ranking />} />
-          <Route path="*" element={<h1 style={{ textAlign: 'center', margin: '10px 0' }}>Selecciona un modo de juego</h1>} />
+          <Route path="*"  element={<TableroCasual />} />
         </Routes>
       </div>
     </Router>
