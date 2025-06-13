@@ -5,7 +5,7 @@ import { esValida, encontrarAreas, obtenerSolucion } from '../../Resolver/Resolv
 import { useState, useCallback, useEffect } from 'react';
 
 function TableroCasual() {
-  const [size, setSize] = useState(6);
+  const [size, setSize] = useState(5);
 
   const [tableroAMostrar, setTableroAMostrar] = useState(null);
   const [cargandoTablero, setCargandoTablero] = useState(true);

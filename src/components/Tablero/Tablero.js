@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './Tablero.css';
-import { calcularAdyacencias } from '../Resolver/ResolverToichika'
+import { calcularAdyacencias, contarSoluciones, obtenerSolucion } from '../Resolver/ResolverToichika.js'
 
 const FLECHAS = ['↑', '→', '↓', '←', ''];
 
@@ -105,6 +105,20 @@ export function generarTableroSoluble(filas, columnas, cantidadRegiones) {
   }
 }
 
+export function generarTableroConUnicaSolucion(filas, cols, numRegiones) {
+  while (true) {
+    const tablero = generarRegionesAleatorias(filas, cols, numRegiones);
+    const ady = calcularAdyacencias(tablero);
+    const pareja = apareamientoNoAdyacente(ady);
+    if (!pareja) continue;
+    if (!asignarFlechasSolucion(tablero, pareja)) continue;
+
+    if (contarSoluciones(tablero, 2) === 1) {
+      return tablero;
+    }
+  }
+}
+
 
 function generarRegionesAleatorias(filas, columnas, cantidadRegiones) {
   const tablero = Array.from({ length: filas }, () =>
@@ -184,7 +198,7 @@ const obtenerSiguienteFlecha = (actual) => {
   return FLECHAS[(index + 1) % FLECHAS.length];
 };
 
-function Tablero({size, onTableroGenerado, onTableroChange, tableroInicial }){
+const Tablero = ({ size, onTableroGenerado, onTableroChange, tableroInicial }) => {
   const [tablero, setTablero] = useState([]);
 
   useEffect(() => {
@@ -194,32 +208,49 @@ function Tablero({size, onTableroGenerado, onTableroChange, tableroInicial }){
   }, [tableroInicial]);
 
   const manejarClickCelda = (x, y) => {
-    setTablero(prevTablero => {
-      const nuevoTablero = prevTablero.map((fila, i) =>
-        fila.map((celda, j) => 
-          i === x && j === y 
-          ? { ...celda, flecha: obtenerSiguienteFlecha(celda.flecha) } 
-          : celda
+    setTablero(prev => {
+      const nuevo = prev.map((fila, i) =>
+        fila.map((celda, j) =>
+          i === x && j === y
+            ? { ...celda, flecha: obtenerSiguienteFlecha(celda.flecha) }
+            : celda
         )
       );
-
-      if (onTableroChange) onTableroChange(nuevoTablero);
-      return nuevoTablero;
+      onTableroChange?.(nuevo);
+      return nuevo;
     });
   };
 
   const generarTablero = useCallback(() => {
-    const nuevoTablero = generarTableroSoluble(size, size, 10);
-    return nuevoTablero;
+    // Genera tablero con solución única y selecciona una pista
+    const full = generarTableroConUnicaSolucion(size, size, 10);
+    const sol = obtenerSolucion(full);
+    // Si por algún error no hay solución, revenimos a generación
+    if (!sol) return generarTableroConUnicaSolucion(size, size, 10);
+
+    const pistas = [];
+    sol.forEach((fila, x) =>
+      fila.forEach((c, y) => c.flecha && pistas.push({ x, y, flecha: c.flecha }))
+    );
+
+    const { x, y, flecha } =
+      pistas[Math.floor(Math.random() * pistas.length)];
+
+    // Tablero inicial: sólo la pista
+    return full.map((fila, i) =>
+      fila.map((cel, j) =>
+        i === x && j === y ? { ...cel, flecha } : { ...cel, flecha: '' }
+      )
+    );
   }, [size]);
-  
+
   useEffect(() => {
-    const nuevoTablero = generarTablero();
-    setTablero(nuevoTablero);
-    if(onTableroGenerado) onTableroGenerado(nuevoTablero);
+    const tab = generarTablero();
+    setTablero(tab);
+    onTableroGenerado?.(tab);
   }, [generarTablero, onTableroGenerado]);
- 
-  const getBordeEstilo = useCallback((x, y) => {
+
+   const getBordeEstilo = useCallback((x, y) => {
       const borders = {
         borderTop: '3px solid #666',
         borderRight: '3px solid #666',
@@ -258,35 +289,31 @@ function Tablero({size, onTableroGenerado, onTableroChange, tableroInicial }){
       
       return borders;
     }, [tablero, size]);
-  
+
   return (
     <div style={{ display: 'flex', justifyContent: 'center' }}>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${size}, 50px)`,
-        gridTemplateRows: `repeat(${size}, 50px)`
-      }}>
-        {tablero.map((row, x) =>
-          row.map((celda, y) => (
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${size}, 50px)`,
+          gridTemplateRows: `repeat(${size}, 50px)`
+        }}
+      >
+        {tablero.map((fila, x) =>
+          fila.map((celda, y) => (
             <div
               key={`${x}-${y}`}
-              onClick={(e) => manejarClickCelda(x, y, 0)}
-              onContextMenu={(e) => {
-                e.preventDefault(); 
-                manejarClickCelda(x, y, 2);
-              }}
+              onClick={() => manejarClickCelda(x, y)}
               style={{
                 cursor: 'pointer',
-                width: '50px',
-                height: '50px',
+                width: 50,
+                height: 50,
                 display: 'flex',
-                justifyContent: 'center',
                 alignItems: 'center',
-                fontSize: '24px', 
+                justifyContent: 'center',
+                fontSize: 24,
                 backgroundColor: `hsl(${celda.region * 30}, 80%, 75%)`,
                 ...getBordeEstilo(x, y)
-                ,
-                    color:'#121213'
               }}
             >
               {celda.flecha}
@@ -296,7 +323,6 @@ function Tablero({size, onTableroGenerado, onTableroChange, tableroInicial }){
       </div>
     </div>
   );
-}
+};
 
 export default Tablero;
-
