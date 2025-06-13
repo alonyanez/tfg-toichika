@@ -4,6 +4,62 @@ import './TableroCasual.css';
 import { esValida, encontrarAreas, obtenerSolucion } from '../../Resolver/ResolverToichika';
 import { useState, useCallback, useEffect } from 'react';
 
+
+export function filtrarFlechaRegionMasGrande(fullTablero, nPistas = 2) {
+  // 1) Cuenta cuántas celdas hay en cada región
+  const regionSizes = {};
+  fullTablero.forEach(row =>
+    row.forEach(c => {
+      regionSizes[c.region] = (regionSizes[c.region] || 0) + 1;
+    })
+  );
+
+  // 2) Ordena regiones por tamaño y toma las nPistas primeras
+  const regionesOrdenadas = Object.entries(regionSizes)
+    .sort(([, a], [, b]) => b - a)  // descendiente por tamaño
+    .map(([regionId]) => Number(regionId));
+
+  const topRegions = regionesOrdenadas.slice(0, nPistas);
+
+  // 3) Para cada región, busca una celda con flecha
+  const pistas = [];
+  topRegions.forEach(regId => {
+    // encuentra en fullTablero
+    for (let x = 0; x < fullTablero.length; x++) {
+      for (let y = 0; y < fullTablero[x].length; y++) {
+        const c = fullTablero[x][y];
+        if (c.region === regId && c.flecha) {
+          pistas.push({ x, y, flecha: c.flecha });
+          return; // sal del bucle for(y)
+        }
+      }
+    }
+    // fallback: si no se encontró en esa región, toma la primera flecha global
+    if (!pistas.some(p => p.region === regId)) {
+      outer: for (let x = 0; x < fullTablero.length; x++) {
+        for (let y = 0; y < fullTablero[x].length; y++) {
+          if (fullTablero[x][y].flecha) {
+            pistas.push({ x, y, flecha: fullTablero[x][y].flecha });
+            break outer;
+          }
+        }
+      }
+    }
+  });
+
+  // 4) Reconstruye el tablero dejando sólo esas dos flechas
+  return fullTablero.map((row, i) =>
+    row.map((c, j) => {
+      const pista = pistas.find(p => p.x === i && p.y === j);
+      return {
+        region: c.region,
+        flecha: pista ? pista.flecha : ''
+      };
+    })
+  );
+}
+
+
 function TableroCasual() {
   const [size, setSize] = useState(5);
 
@@ -65,9 +121,10 @@ function TableroCasual() {
 
   
   useEffect(() => {
-    if (!tableroGenerado.length) return;
-  
-    const solucion = obtenerSolucion(tableroGenerado);
+  if (!tableroGenerado.length) return;
+
+  // 1) Genera la solución completa (tiene todas las flechas)
+   const solucion = obtenerSolucion(tableroGenerado);
   
     if (!solucion) {
       if (intentos < MAX_INTENTOS - 1) {
@@ -81,21 +138,20 @@ function TableroCasual() {
       return;
     }
 
-    setTableroSolucion(solucion);
-    const tableroLimpio = solucion.map(fila =>
-      fila.map(celda => ({...celda, flecha: '' })) 
-    );
-  
-    console.log('Tablero limpio a pintar:', tableroLimpio);
-  
-    setTableroAMostrar(tableroLimpio);
-    setTableroState(tableroLimpio);
-    setTableroListo(true);
-    setIntentos(0);
-    setCargando(false);
-    setCargandoTablero(false);
-  
-  }, [tableroGenerado]);
+  // 2) Filtra para quedarnos sólo con la flecha de la región más grande
+  const tableroInicial = filtrarFlechaRegionMasGrande(solucion, 2);
+
+  // 3) Pásaselo a Tablero
+  setTableroAMostrar(tableroInicial);
+  setTableroState(tableroInicial);
+
+  // 4) Guarda la solución completa si la necesitas más adelante
+  setTableroSolucion(solucion);
+
+  setTableroListo(true);
+  setCargando(false);
+  setCargandoTablero(false);
+}, [tableroGenerado]);
 
 
   return (
