@@ -6,7 +6,6 @@ import { useState, useCallback, useEffect } from 'react';
 
 
 export function filtrarFlechaRegionMasGrande(fullTablero, nPistas = 2) {
-  // 1) Cuenta cuántas celdas hay en cada región
   const regionSizes = {};
   fullTablero.forEach(row =>
     row.forEach(c => {
@@ -14,27 +13,25 @@ export function filtrarFlechaRegionMasGrande(fullTablero, nPistas = 2) {
     })
   );
 
-  // 2) Ordena regiones por tamaño y toma las nPistas primeras
   const regionesOrdenadas = Object.entries(regionSizes)
-    .sort(([, a], [, b]) => b - a)  // descendiente por tamaño
+    .sort(([, a], [, b]) => b - a) 
     .map(([regionId]) => Number(regionId));
 
   const topRegions = regionesOrdenadas.slice(0, nPistas);
 
-  // 3) Para cada región, busca una celda con flecha
   const pistas = [];
   topRegions.forEach(regId => {
-    // encuentra en fullTablero
+ 
     for (let x = 0; x < fullTablero.length; x++) {
       for (let y = 0; y < fullTablero[x].length; y++) {
         const c = fullTablero[x][y];
         if (c.region === regId && c.flecha) {
           pistas.push({ x, y, flecha: c.flecha });
-          return; // sal del bucle for(y)
+          return;
         }
       }
     }
-    // fallback: si no se encontró en esa región, toma la primera flecha global
+
     if (!pistas.some(p => p.region === regId)) {
       outer: for (let x = 0; x < fullTablero.length; x++) {
         for (let y = 0; y < fullTablero[x].length; y++) {
@@ -47,7 +44,6 @@ export function filtrarFlechaRegionMasGrande(fullTablero, nPistas = 2) {
     }
   });
 
-  // 4) Reconstruye el tablero dejando sólo esas dos flechas
   return fullTablero.map((row, i) =>
     row.map((c, j) => {
       const pista = pistas.find(p => p.x === i && p.y === j);
@@ -78,7 +74,7 @@ function TableroCasual() {
   const [cargando, setCargando] = useState(false);  
   const [regenKey, setRegenKey] = useState(0);
   const [intentos, setIntentos] = useState(0);
-  const MAX_INTENTOS = 100;
+  const MAX_INTENTOS = 500;
 
   useEffect(() => {
     setCargandoTablero(true);

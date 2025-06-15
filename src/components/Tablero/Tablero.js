@@ -98,9 +98,8 @@ export function generarTableroSoluble(filas, columnas, cantidadRegiones) {
     const tablero = generarRegionesAleatorias(filas, columnas, cantidadRegiones);
     const ady = calcularAdyacencias(tablero);
     const pareja = apareamientoNoAdyacente(ady);
-    if (!pareja) continue;              // reintentar regiones
+    if (!pareja) continue;      
     if (!asignarFlechasSolucion(tablero, pareja)) continue;
-    // ¡Listo, este tablero es soluble por construcción!
     return tablero;
   }
 }

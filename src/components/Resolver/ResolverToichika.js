@@ -103,7 +103,7 @@ function asignarFlechas(celdas, tablero) {
   return ops;
 }
 
-export function contarSoluciones(tableroOriginal, maxCount = 2) {
+export function contarSoluciones(tableroOriginal, maxCount = 1) {
   const areas = encontrarAreas(tableroOriginal);
   const rawAdy = calcularAdyacencias(tableroOriginal);
   const adyacencias = new Map(Object.entries(rawAdy).map(([r, v]) => [Number(r), v]));
@@ -125,7 +125,7 @@ export function contarSoluciones(tableroOriginal, maxCount = 2) {
   let count = 0;
 
   function dfs(tab, sinAsig, opciones) {
-    if (count >= maxCount) return;
+    if (count > maxCount) return;
     if (!sinAsig.size) { count++; return; }
 
     let region = null;
@@ -157,7 +157,7 @@ export function contarSoluciones(tableroOriginal, maxCount = 2) {
 
       if (!podar) dfs(tab, sinAsig, nuevasOpc);
       tab[x][y].flecha = old;
-      if (count >= maxCount) break;
+      if (count > maxCount) break;
     }
 
     sinAsig.add(region);
