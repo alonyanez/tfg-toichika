@@ -173,18 +173,6 @@ function TableroCompetitivo() {
                   backgroundColor: '#5A5A5A',
                   color:'#FAF9F7', 
                   fontWeight: 'bold',
-                  borderRadius: '15px' }}
-            onClick={handleReset} 
-            >Reiniciar
-          </button>
-          <button 
-            style={{ 
-                  marginRight: 10, 
-                  padding: '8px 16px', 
-                  cursor: 'pointer', 
-                  backgroundColor: '#5A5A5A',
-                  color:'#FAF9F7', 
-                  fontWeight: 'bold',
                   borderRadius: '15px' }} 
             onClick={handleStart}
             >Reiniciar
