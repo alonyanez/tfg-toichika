@@ -112,9 +112,9 @@ export function generarTableroConUnicaSolucion(filas, cols, numRegiones) {
     if (!pareja) continue;
     if (!asignarFlechasSolucion(tablero, pareja)) continue;
 
-    if (contarSoluciones(tablero, 2) === 1) {
+    //if (contarSoluciones(tablero, 2) === 1) {
       return tablero;
-    }
+    //}
   }
 }
 
@@ -235,7 +235,6 @@ const Tablero = ({ size, onTableroGenerado, onTableroChange, tableroInicial }) =
     const { x, y, flecha } =
       pistas[Math.floor(Math.random() * pistas.length)];
 
-    // Tablero inicial: sólo la pista
     return full.map((fila, i) =>
       fila.map((cel, j) =>
         i === x && j === y ? { ...cel, flecha } : { ...cel, flecha: '' }

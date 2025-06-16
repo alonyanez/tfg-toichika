@@ -103,14 +103,16 @@ function asignarFlechas(celdas, tablero) {
   return ops;
 }
 
-export function contarSoluciones(tableroOriginal, maxCount = 1) {
+export function contarSoluciones(tableroOriginal, maxCount = 2) {
   const areas = encontrarAreas(tableroOriginal);
   const rawAdy = calcularAdyacencias(tableroOriginal);
-  const adyacencias = new Map(Object.entries(rawAdy).map(([r, v]) => [Number(r), v]));
+  const adyacencias = new Map(
+    Object.entries(rawAdy).map(([r, v]) => [Number(r), v])
+  );
 
   const regiones = Object.keys(areas)
     .map(r => Number(r))
-    .filter(r => areas[r].every(([i,j]) => !tableroOriginal[i][j].flecha))
+    .filter(r => areas[r].every(([i, j]) => !tableroOriginal[i][j].flecha))
     .sort((a, b) => areas[a].length - areas[b].length);
 
   const opcionesInicial = new Map();
@@ -125,16 +127,28 @@ export function contarSoluciones(tableroOriginal, maxCount = 1) {
   let count = 0;
 
   function dfs(tab, sinAsig, opciones) {
-    if (count > maxCount) return;
-    if (!sinAsig.size) { count++; return; }
+    // 1) Si ya tenemos al menos maxCount, detenemos toda la búsqueda.
+    if (count >= maxCount) return;
 
+    // 2) Caso base: todas las regiones asignadas → validamos y contamos.
+    if (sinAsig.size === 0) {
+      if (esValida(tab)) {
+        count++;
+      }
+      return;
+    }
+
+    // 3) Selección heurística de la región con menos opciones:
     let region = null;
     sinAsig.forEach(r => {
       if (region === null) region = r;
       else {
         const a = opciones.get(r).length;
         const b = opciones.get(region).length;
-        if (a < b || (a === b && adyacencias.get(r).size > adyacencias.get(region).size)) {
+        if (
+          a < b ||
+          (a === b && adyacencias.get(r).size > adyacencias.get(region).size)
+        ) {
           region = r;
         }
       }
@@ -156,10 +170,11 @@ export function contarSoluciones(tableroOriginal, maxCount = 1) {
       });
 
       if (!podar) dfs(tab, sinAsig, nuevasOpc);
-      tab[x][y].flecha = old;
-      if (count > maxCount) break;
-    }
 
+      // Restauramos y salimos si ya excedimos el umbral:
+      tab[x][y].flecha = old;
+      if (count >= maxCount) break;
+    }
     sinAsig.add(region);
   }
 
