@@ -23,6 +23,30 @@ const FLECHAS = ['↑', '→', '↓', '←', ''];
   [{region: 10}, {region: 10}, {region: 10}, {region: 10}, {region: 10}, {region: 10}]
 ];
 */
+function clonarTablero(tablero) {
+  return tablero.map(fila => fila.map(celda => ({ ...celda })));
+}
+
+function obtenerTodasLasFlechas(tablero) {
+  const flechas = [];
+  for (let y = 0; y < tablero.length; y++) {
+    for (let x = 0; x < tablero[0].length; x++) {
+      const celda = tablero[y][x];
+      if (celda.flecha) {
+        flechas.push({ x, y, flecha: celda.flecha });
+      }
+    }
+  }
+  return flechas;
+}
+
+function mezclarArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
 
 function apareamientoNoAdyacente(adyacencias) {
   const regiones = Object.keys(adyacencias).map(n => parseInt(n));
@@ -104,17 +128,34 @@ export function generarTableroSoluble(filas, columnas, cantidadRegiones) {
   }
 }
 
-export function generarTableroConUnicaSolucion(filas, cols, numRegiones) {
+export function generarTableroConUnicaSolucion(filas, columnas, numRegiones) {
   while (true) {
-    const tablero = generarRegionesAleatorias(filas, cols, numRegiones);
+    const tablero = generarRegionesAleatorias(filas, columnas, numRegiones);
     const ady = calcularAdyacencias(tablero);
-    const pareja = apareamientoNoAdyacente(ady);
-    if (!pareja) continue;
-    if (!asignarFlechasSolucion(tablero, pareja)) continue;
+    const parejas = apareamientoNoAdyacente(ady);
+    if (!parejas) continue;
 
-    //if (contarSoluciones(tablero, 2) === 1) {
-      return tablero;
-    //}
+    // Clona el tablero vacío + solución completa
+    if (!asignarFlechasSolucion(tablero, parejas)) continue;
+    const tableroSolucion = clonarTablero(tablero);
+
+    // Elimina flechas poco a poco
+    const posicionesConFlechas = obtenerTodasLasFlechas(tablero); // [{x, y, flecha}, ...]
+    mezclarArray(posicionesConFlechas); // Para probar en orden aleatorio
+
+    for (const pos of posicionesConFlechas) {
+      const backup = tablero[pos.y][pos.x].flecha;
+      tablero[pos.y][pos.x].flecha = null;
+
+      const numSoluciones = contarSoluciones(tablero, 2);
+      if (numSoluciones !== 1) {
+        // Volvemos a poner la flecha si hay múltiples soluciones
+        tablero[pos.y][pos.x].flecha = backup;
+      }
+    }
+
+    // Hemos terminado: tablero con solución única
+    return tablero;
   }
 }
 
@@ -221,10 +262,8 @@ const Tablero = ({ size, onTableroGenerado, onTableroChange, tableroInicial }) =
   };
 
   const generarTablero = useCallback(() => {
-    // Genera tablero con solución única y selecciona una pista
     const full = generarTableroConUnicaSolucion(size, size, 10);
     const sol = obtenerSolucion(full);
-    // Si por algún error no hay solución, revenimos a generación
     if (!sol) return generarTableroConUnicaSolucion(size, size, 10);
 
     const pistas = [];

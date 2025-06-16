@@ -135,7 +135,7 @@ function TableroCasual() {
     }
 
   // 2) Filtra para quedarnos sólo con la flecha de la región más grande
-  const tableroInicial = filtrarFlechaRegionMasGrande(solucion, 3);
+  const tableroInicial = filtrarFlechaRegionMasGrande(solucion, 4);
 
   // 3) Pásaselo a Tablero
   setTableroAMostrar(tableroInicial);
