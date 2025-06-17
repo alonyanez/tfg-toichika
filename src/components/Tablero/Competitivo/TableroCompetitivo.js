@@ -156,6 +156,7 @@ function TableroCompetitivo() {
     const flechas = tableroState.flat().filter(c => c.flecha).length;
     const regiones = Object.keys(encontrarAreas(tableroState)).length;
     if (flechas < regiones) {
+      setCorriendo(true);
       return alert(`Debes colocar ${regiones} flechas. Llevas ${flechas}.`);
     }
     const valido = esValida(tableroState);
@@ -165,7 +166,8 @@ function TableroCompetitivo() {
       setScores(s => [...s, e]);
       alert(`¡Válido! Tiempo: ${formato()}. Puntos: ${score}`);
     } else {
-      alert(`Inválido. Tiempo: ${formato()}. Puntos: 0`);
+      setCorriendo(true);
+      alert(`¡Inválido!`);
     }
   };
 
