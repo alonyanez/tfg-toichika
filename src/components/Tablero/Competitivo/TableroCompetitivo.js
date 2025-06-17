@@ -2,8 +2,62 @@ import Tablero from '../Tablero';
 import { esValida, encontrarAreas, obtenerSolucion } from '../../Resolver/ResolverToichika';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 
+
+
+export function filtrarFlechaRegionMasGrande(fullTablero, nPistas = 2) {
+  const regionSizes = {};
+  fullTablero.forEach(row =>
+    row.forEach(c => {
+      regionSizes[c.region] = (regionSizes[c.region] || 0) + 1;
+    })
+  );
+
+  const regionesOrdenadas = Object.entries(regionSizes)
+    .sort(([, a], [, b]) => b - a) 
+    .map(([regionId]) => Number(regionId));
+
+  const topRegions = regionesOrdenadas.slice(0, nPistas);
+
+  const pistas = [];
+  topRegions.forEach(regId => {
+ 
+    for (let x = 0; x < fullTablero.length; x++) {
+      for (let y = 0; y < fullTablero[x].length; y++) {
+        const c = fullTablero[x][y];
+        if (c.region === regId && c.flecha) {
+          pistas.push({ x, y, flecha: c.flecha });
+          return;
+        }
+      }
+    }
+
+    if (!pistas.some(p => p.region === regId)) {
+      outer: for (let x = 0; x < fullTablero.length; x++) {
+        for (let y = 0; y < fullTablero[x].length; y++) {
+          if (fullTablero[x][y].flecha) {
+            pistas.push({ x, y, flecha: fullTablero[x][y].flecha });
+            break outer;
+          }
+        }
+      }
+    }
+  });
+
+  return fullTablero.map((row, i) =>
+    row.map((c, j) => {
+      const pista = pistas.find(p => p.x === i && p.y === j);
+      return {
+        region: c.region,
+        flecha: pista ? pista.flecha : '',
+        fija: !!pista  
+      };
+    })
+  );
+}
+
+
 function TableroCompetitivo() {
-  const [size] = useState(6);
+  const [size] = useState(5);
   const [playerName, setPlayerName] = useState('');
 
   const [regenKey, setRegenKey] = useState(0);
@@ -13,7 +67,7 @@ function TableroCompetitivo() {
   const [cargandoTablero, setCargandoTablero] = useState(false);
 
   const [intentos, setIntentos] = useState(0);
-  const MAX_INTENTOS = 100;
+  const MAX_INTENTOS = 500;
 
 
   const [solucionState, setSolucionState] = useState(null);
@@ -43,7 +97,6 @@ function TableroCompetitivo() {
 
   const handleStart = () => {
     if (cargandoTablero) return;
-
     setTiempo(0);
     setTableroListo(false);
     setTableroAMostrar(null);
@@ -71,6 +124,7 @@ function TableroCompetitivo() {
   useEffect(() => {
     if (!cargandoTablero || !tableroGenerado.length) return;
     const solucion = obtenerSolucion(tableroGenerado);
+
     if (!solucion) {
       if (intentos < MAX_INTENTOS - 1) {
         setIntentos(i => i + 1);
@@ -81,8 +135,11 @@ function TableroCompetitivo() {
       }
       return;
     }
+
+    
     const limpio = solucion.map(f => f.map(c => ({ ...c, flecha: '' })));
-    setTableroAMostrar(limpio);
+    const tableroInicial = filtrarFlechaRegionMasGrande(solucion, 4);
+    setTableroAMostrar(tableroInicial);
     setTableroListo(true);
     setCargandoTablero(false);
     setCorriendo(true);
