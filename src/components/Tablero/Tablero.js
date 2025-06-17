@@ -74,8 +74,8 @@ function apareamientoNoAdyacente(adyacencias) {
 
 function asignarFlechasSolucion(tablero, pareja) {
   const R = tablero.length, C = tablero[0].length;
-
   const celdasPorRegion = {};
+
   for (let i = 0; i < R; i++) {
     for (let j = 0; j < C; j++) {
       const r = tablero[i][j].region;
@@ -87,31 +87,41 @@ function asignarFlechasSolucion(tablero, pareja) {
   tablero.forEach(fila => fila.forEach(celda => celda.flecha = ''));
 
   for (let r in pareja) {
-    if (r > pareja[r]) continue; 
+    if (r > pareja[r]) continue;
     const s = pareja[r];
-    const [x1,y1] = celdasPorRegion[r][Math.floor(Math.random() * celdasPorRegion[r].length)];
-    const [x2,y2] = celdasPorRegion[s][Math.floor(Math.random() * celdasPorRegion[s].length)];
 
-    if (x1 === x2) {
-      if (y1 < y2) {
-        tablero[x1][y1].flecha = '→';
-        tablero[x2][y2].flecha = '←';
-      } else {
-        tablero[x1][y1].flecha = '←';
-        tablero[x2][y2].flecha = '→';
+    const celdasR = celdasPorRegion[r];
+    const celdasS = celdasPorRegion[s];
+    let flechasAsignadas = false;
+
+    for (let [x1, y1] of celdasR) {
+      for (let [x2, y2] of celdasS) {
+        if (x1 === x2) {
+          if (y1 < y2) {
+            tablero[x1][y1].flecha = '→';
+            tablero[x2][y2].flecha = '←';
+          } else {
+            tablero[x1][y1].flecha = '←';
+            tablero[x2][y2].flecha = '→';
+          }
+          flechasAsignadas = true;
+          break;
+        } else if (y1 === y2) {
+          if (x1 < x2) {
+            tablero[x1][y1].flecha = '↓';
+            tablero[x2][y2].flecha = '↑';
+          } else {
+            tablero[x1][y1].flecha = '↑';
+            tablero[x2][y2].flecha = '↓';
+          }
+          flechasAsignadas = true;
+          break;
+        }
       }
-    } else if (y1 === y2) {
-      if (x1 < x2) {
-        tablero[x1][y1].flecha = '↓';
-        tablero[x2][y2].flecha = '↑';
-      } else {
-        tablero[x1][y1].flecha = '↑';
-        tablero[x2][y2].flecha = '↓';
-      }
-    } else {
-      return false;
+      if (flechasAsignadas) break;
     }
 
+    if (!flechasAsignadas) return false;
   }
 
   return true;
@@ -336,13 +346,19 @@ const Tablero = ({ size, onTableroGenerado, onTableroChange, tableroInicial }) =
           gridTemplateRows: `repeat(${size}, 50px)`
         }}
       >
-        {tablero.map((fila, x) =>
-          fila.map((celda, y) => (
+    {tablero.map((fila, x) =>
+        fila.map((celda, y) => {
+          const borde = getBordeEstilo(x, y);
+          const esPista = celda.fija;
+
+          return (
             <div
               key={`${x}-${y}`}
-              onClick={() => manejarClickCelda(x, y)}
+              onClick={() => {
+                if (!esPista) manejarClickCelda(x, y);
+              }}
               style={{
-                cursor: 'pointer',
+                cursor: esPista ? 'default' : 'pointer',
                 width: 50,
                 height: 50,
                 display: 'flex',
@@ -350,13 +366,20 @@ const Tablero = ({ size, onTableroGenerado, onTableroChange, tableroInicial }) =
                 justifyContent: 'center',
                 fontSize: 24,
                 backgroundColor: `hsl(${celda.region * 30}, 80%, 75%)`,
-                ...getBordeEstilo(x, y)
+                // mantenemos tus bordes normales
+                borderTop: borde.borderTop,
+                borderRight: borde.borderRight,
+                borderBottom: borde.borderBottom,
+                borderLeft: borde.borderLeft,
+
               }}
             >
+              {/* siempre mostramos la flecha */}
               {celda.flecha}
             </div>
-          ))
-        )}
+          );
+        })
+      )}
       </div>
     </div>
   );

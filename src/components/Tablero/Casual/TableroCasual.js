@@ -49,7 +49,8 @@ export function filtrarFlechaRegionMasGrande(fullTablero, nPistas = 2) {
       const pista = pistas.find(p => p.x === i && p.y === j);
       return {
         region: c.region,
-        flecha: pista ? pista.flecha : ''
+        flecha: pista ? pista.flecha : '',
+        fija: !!pista   // true si es flecha de pista
       };
     })
   );
