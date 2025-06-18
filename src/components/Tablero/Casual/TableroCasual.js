@@ -118,11 +118,11 @@ function TableroCasual() {
 
   
   useEffect(() => {
-  if (!tableroGenerado.length) return;
+    if (!tableroGenerado.length) return;
 
-  // 1) Genera la solución completa (tiene todas las flechas)
-   const solucion = obtenerSolucion(tableroGenerado);
-  
+    // 1) Genera la solución completa (tiene todas las flechas)
+    const solucion = obtenerSolucion(tableroGenerado);
+
     if (!solucion) {
       if (intentos < MAX_INTENTOS - 1) {
         setIntentos(i => i + 1);
@@ -135,15 +135,26 @@ function TableroCasual() {
       return;
     }
 
-  const tableroInicial = filtrarFlechaRegionMasGrande(solucion, 4);
-  setTableroAMostrar(tableroInicial);
-  setTableroState(tableroInicial);
+     const tableroSinFlechasPeroConPistas = solucion.map(fila =>
+    fila.map(celda => ({
+      ...celda,
+      flecha: '',   // oculta la flecha visual
+      // fijar: dejamos celda.fija como venía (true si era pista en la solución mínima).
+      // Si quisieras forzar que todas las pistas mantengan fija=true:
+      fija: celda.fija === true   // o simplemente `celda.fija`, asumiendo que solución marcó correctamente
+    }))
+  );
+
+  // 3) Actualizamos estados
+  setTableroAMostrar(tableroSinFlechasPeroConPistas);
+  setTableroState(tableroSinFlechasPeroConPistas);
+  // Guardamos la solución completa (con flechas) para mostrar luego si es necesario:
   setTableroSolucion(solucion);
 
-  setTableroListo(true);
-  setCargando(false);
-  setCargandoTablero(false);
-}, [tableroGenerado]);
+    setTableroListo(true);
+    setCargando(false);
+    setCargandoTablero(false);
+  }, [tableroGenerado]);
 
 
   return (

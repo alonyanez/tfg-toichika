@@ -145,13 +145,12 @@ export function generarTableroConUnicaSolucion(filas, columnas, numRegiones) {
     const parejas = apareamientoNoAdyacente(ady);
     if (!parejas) continue;
 
-    // Clona el tablero vacío + solución completa
+    // Asignamos solución completa
     if (!asignarFlechasSolucion(tablero, parejas)) continue;
-    const tableroSolucion = clonarTablero(tablero);
 
-    // Elimina flechas poco a poco
+    // Eliminamos flechas mientras la unicidad persista
     const posicionesConFlechas = obtenerTodasLasFlechas(tablero); // [{x, y, flecha}, ...]
-    mezclarArray(posicionesConFlechas); // Para probar en orden aleatorio
+    mezclarArray(posicionesConFlechas);
 
     for (const pos of posicionesConFlechas) {
       const backup = tablero[pos.y][pos.x].flecha;
@@ -159,12 +158,23 @@ export function generarTableroConUnicaSolucion(filas, columnas, numRegiones) {
 
       const numSoluciones = contarSoluciones(tablero, 2);
       if (numSoluciones !== 1) {
-        // Volvemos a poner la flecha si hay múltiples soluciones
         tablero[pos.y][pos.x].flecha = backup;
       }
     }
 
-    // Hemos terminado: tablero con solución única
+    // Al terminar, marcamos las flechas restantes como fijas (pistas mínimas)
+    for (let i = 0; i < filas; i++) {
+      for (let j = 0; j < columnas; j++) {
+        const celda = tablero[i][j];
+        if (celda.flecha) {
+          celda.fija = true;
+        } else {
+          // opcional: aseguramos que no quede undefined
+          celda.fija = false;
+        }
+      }
+    }
+
     return tablero;
   }
 }
@@ -248,6 +258,7 @@ const obtenerSiguienteFlecha = (actual) => {
   return FLECHAS[(index + 1) % FLECHAS.length];
 };
 
+
 const Tablero = ({ size, onTableroGenerado, onTableroChange, tableroInicial }) => {
   const [tablero, setTablero] = useState([]);
 
@@ -272,23 +283,8 @@ const Tablero = ({ size, onTableroGenerado, onTableroChange, tableroInicial }) =
   };
 
   const generarTablero = useCallback(() => {
-    const full = generarTableroConUnicaSolucion(size, size, 10);
-    const sol = obtenerSolucion(full);
-    if (!sol) return generarTableroConUnicaSolucion(size, size, 10);
-
-    const pistas = [];
-    sol.forEach((fila, x) =>
-      fila.forEach((c, y) => c.flecha && pistas.push({ x, y, flecha: c.flecha }))
-    );
-
-    const { x, y, flecha } =
-      pistas[Math.floor(Math.random() * pistas.length)];
-
-    return full.map((fila, i) =>
-      fila.map((cel, j) =>
-        i === x && j === y ? { ...cel, flecha } : { ...cel, flecha: '' }
-      )
-    );
+    const pistasTablero = generarTableroConUnicaSolucion(size, size, 8);
+    return pistasTablero;
   }, [size]);
 
   useEffect(() => {
@@ -297,45 +293,41 @@ const Tablero = ({ size, onTableroGenerado, onTableroChange, tableroInicial }) =
     onTableroGenerado?.(tab);
   }, [generarTablero, onTableroGenerado]);
 
-   const getBordeEstilo = useCallback((x, y) => {
-      const borders = {
-        borderTop: '3px solid #666',
-        borderRight: '3px solid #666',
-        borderBottom: '3px solid #666',
-        borderLeft: '3px solid #666'
-      };
-      
-      // Verificar vecinos
-      //si x es mayor o menor a los limites del tablero y la region xy del tablero es distinta a la region x+/-1 y
-      if (x > 0 && tablero[x][y]?.region !== tablero[x - 1][y]?.region) {
-        borders.borderTop = '3px solid #000000';
-      }
-      if (x < size - 1 && tablero[x][y]?.region !== tablero[x + 1][y]?.region) {
-        borders.borderBottom = '3px solid #000000';
-      }
-  
-      //si y es mayor o menor a los limites del tablero y la region xy del tablero es distinta a la region x y+1/-1
-      if (y > 0 && tablero[x][y]?.region !== tablero[x][y - 1]?.region) {
-        borders.borderLeft = '3px solid #000000';
-      }
-      if (y < size - 1 && tablero[x][y]?.region !== tablero[x][y + 1]?.region) {
-        borders.borderRight = '3px solid #000000';
-      }
-  
-      if (x === 0 ){
-        borders.borderTop = '3px solid #000000';
-      } else if(x === size - 1) {
-        borders.borderBottom = '3px solid #000000';
-      }
-  
-      if (y === 0 ){
-        borders.borderLeft = '3px solid #000000';
-      } else if(y === size - 1) {
-        borders.borderRight = '3px solid #000000';
-      }
-      
-      return borders;
-    }, [tablero, size]);
+  const getBordeEstilo = useCallback((x, y) => {
+    const borders = {
+      borderTop: '2px solid #666',
+      borderRight: '2px solid #666',
+      borderBottom: '2px solid #666',
+      borderLeft: '2px solid #666'
+    };
+
+    // Verificar vecinos y límites para bordes de regiones (negro si cambia de región o en los bordes del tablero)
+    if (x > 0 && tablero[x][y]?.region !== tablero[x - 1][y]?.region) {
+      borders.borderTop = '2px solid #000';
+    }
+    if (x < size - 1 && tablero[x][y]?.region !== tablero[x + 1][y]?.region) {
+      borders.borderBottom = '2px solid #000';
+    }
+    if (y > 0 && tablero[x][y]?.region !== tablero[x][y - 1]?.region) {
+      borders.borderLeft = '2px solid #000';
+    }
+    if (y < size - 1 && tablero[x][y]?.region !== tablero[x][y + 1]?.region) {
+      borders.borderRight = '2px solid #000';
+    }
+    // Borde en el límite del tablero
+    if (x === 0) {
+      borders.borderTop = '2px solid #000';
+    } else if (x === size - 1) {
+      borders.borderBottom = '2px solid #000';
+    }
+    if (y === 0) {
+      borders.borderLeft = '2px solid #000';
+    } else if (y === size - 1) {
+      borders.borderRight = '2px solid #000';
+    }
+
+    return borders;
+  }, [tablero, size]);
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -346,40 +338,74 @@ const Tablero = ({ size, onTableroGenerado, onTableroChange, tableroInicial }) =
           gridTemplateRows: `repeat(${size}, 50px)`
         }}
       >
-    {tablero.map((fila, x) =>
-        fila.map((celda, y) => {
-          const borde = getBordeEstilo(x, y);
-          const esPista = celda.fija;
+        {tablero.map((fila, x) =>
+          fila.map((celda, y) => {
+            const borde = getBordeEstilo(x, y);
+            const esPista = celda.fija;
 
-          return (
-            <div
-              key={`${x}-${y}`}
-              onClick={() => {
-                if (!esPista) manejarClickCelda(x, y);
-              }}
-              style={{
-                cursor: esPista ? 'default' : 'pointer',
-                width: 50,
-                height: 50,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 24,
-                backgroundColor: `hsl(${celda.region * 30}, 80%, 75%)`,
-                // mantenemos tus bordes normales
-                borderTop: borde.borderTop,
-                borderRight: borde.borderRight,
-                borderBottom: borde.borderBottom,
-                borderLeft: borde.borderLeft,
+            // Color de fondo: más oscuro si es pista, más claro si no
+            const fondo = esPista
+              ? `hsl(${celda.region * 30}, 80%, 75%)`
+              : `hsl(${celda.region * 30}, 80%, 75%)`;
 
-              }}
-            >
-              {/* siempre mostramos la flecha */}
-              {celda.flecha}
-            </div>
-          );
-        })
-      )}
+            // Estilo base de la celda
+            const estiloCelda = {
+              cursor: esPista ? 'default' : 'pointer',
+              width: 50,
+              height: 50,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 24,
+              backgroundColor: fondo,
+              // A continuación añadimos condicionalmente el borde
+              ...(esPista
+                // Opción 1: reemplazar completamente con borde verde de 3px
+                //? { border: '3px solid pink' }
+                // Opción 2: si prefieres conservar el borde negro de región y añadir un borde verde interior,
+                // puedes descomentar la línea de abajo y comentar la opción anterior:
+                 ? {
+                     borderTop: borde.borderTop,
+                     borderRight: borde.borderRight,
+                     borderBottom: borde.borderBottom,
+                     borderLeft: borde.borderLeft,
+                     boxShadow: 'inset 0 0 0 4px green' // borde interior verde de 2px
+                }
+                // Opción 3: si prefieres un borde negro exterior y un “outline” verde (fuera):
+                // ? {
+                //     borderTop: borde.borderTop,
+                //     borderRight: borde.borderRight,
+                //     borderBottom: borde.borderBottom,
+                //     borderLeft: borde.borderLeft,
+                //     outline: '2px solid green', // nota: outline no ocupa espacio de layout
+                //   }
+                // Opción 4: simplemente colorear todos los lados de verde, reemplazando el negro:
+                // ? {
+                //     borderTop: '3px solid green',
+                //     borderRight: '3px solid green',
+                //     borderBottom: '3px solid green',
+                //     borderLeft: '3px solid green'
+                //   }
+                : {
+                    // Caso no pista: usar borde calculado según región
+                    borderTop: borde.borderTop,
+                    borderRight: borde.borderRight,
+                    borderBottom: borde.borderBottom,
+                    borderLeft: borde.borderLeft
+                  })
+            };
+
+            return (
+              <div
+                key={`${x}-${y}`}
+                onClick={() => manejarClickCelda(x, y)}
+                style={estiloCelda}
+              >
+                {celda.flecha}
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
