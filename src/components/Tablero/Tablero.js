@@ -47,6 +47,66 @@ function mezclarArray(array) {
   }
 }
 
+function esEmparejamientoUnico(pareja, adyacenciasRegiones) {
+  // Construir grafo complementario adyComp: mapa region -> Set(regiones no adyacentes)
+  const regiones = Object.keys(adyacenciasRegiones).map(r => Number(r));
+  const adyComp = {};
+  regiones.forEach(r => {
+    adyComp[r] = new Set();
+    regiones.forEach(s => {
+      if (s !== r && !adyacenciasRegiones[r].has(s)) {
+        adyComp[r].add(s);
+      }
+    });
+  });
+  // Ahora comprobar si el emparejamiento en adyComp es único: no hay ciclo alternante.
+  // Representamos el matching M: pareja[r] = s, pareja[s] = r.
+  const visitedStack = new Set();
+  // Vamos a intentar detectar ciclo alternante: 
+  // Para cada vértice iniciaremos una búsqueda alternante.
+  const regionesArr = regiones;
+  for (const start of regionesArr) {
+    // DFS alternante: estado = { nodo actual, paso: 0 o 1 }, 
+    // paso=0: busco arista fueraMatching, paso=1: busco arista enMatching.
+    const stack = [];
+    // Para evitar loops infinitos, guardamos (nodo, paso, origen) en visitedLocal
+    const visitedLocal = new Set();
+    stack.push({ node: start, paso: 0, origen: start });
+    while (stack.length) {
+      const { node, paso, origen } = stack.pop();
+      const key = `${node},${paso},${origen}`;
+      if (visitedLocal.has(key)) continue;
+      visitedLocal.add(key);
+      if (paso === 0) {
+        // Debemos tomar arista fueraMatching en adyComp: es decir, vecinos v en adyComp[node] 
+        // que NO sean pareja[node].
+        for (const v of adyComp[node]) {
+          if (pareja[node] === v) continue; // esta es arista enMatching, no la tomamos aquí
+          // Avanzamos al siguiente paso buscando arista enMatching
+          stack.push({ node: v, paso: 1, origen });
+        }
+      } else {
+        // paso === 1: buscamos arista enMatching: es decir, unique pareja de 'node'
+        const p = pareja[node];
+        if (p == null) continue; // no emparejada, pero en emparejamiento perfecto no debería suceder
+        // Si p es el origen y ciclo de longitud >= 4: hemos encontrado ciclo alternante
+        // Para verificar longitud >= 4: podríamos llevar un contador de pasos, pero 
+        // dado que alternamos paso 0 y 1, y aseguramos no volver inmediatamente, 
+        // una forma simple es que si p === origen en un paso 1 y no es la primera expansión, 
+        // lo consideramos ciclo de longitud al menos 2 aristas enMatching+fueraMatching.
+        if (p === origen) {
+          // encontrado ciclo alternante: emparejamiento no único
+          return false;
+        }
+        // Sino, seguimos la búsqueda con paso 0:
+        stack.push({ node: p, paso: 0, origen });
+      }
+    }
+  }
+  // Si para ningún vértice encontramos ciclo alternante, el matching es único.
+  return true;
+}
+
 
 function apareamientoNoAdyacente(adyacencias) {
   const regiones = Object.keys(adyacencias).map(n => parseInt(n));
@@ -132,6 +192,7 @@ export function generarTableroSoluble(filas, columnas, cantidadRegiones) {
     const tablero = generarRegionesAleatorias(filas, columnas, cantidadRegiones);
     const ady = calcularAdyacencias(tablero);
     const pareja = apareamientoNoAdyacente(ady);
+    if(esEmparejamientoUnico(pareja,ady)) continue;
     if (!pareja) continue;      
     if (!asignarFlechasSolucion(tablero, pareja)) continue;
     return tablero;
@@ -154,11 +215,12 @@ export function generarTableroConUnicaSolucion(filas, columnas, numRegiones) {
 
     for (const pos of posicionesConFlechas) {
       const backup = tablero[pos.y][pos.x].flecha;
-      tablero[pos.y][pos.x].flecha = null;
+      tablero[pos.y][pos.x].flecha = '';
 
       const numSoluciones = contarSoluciones(tablero, 2);
       if (numSoluciones !== 1) {
         tablero[pos.y][pos.x].flecha = backup;
+        //continue;
       }
     }
 
