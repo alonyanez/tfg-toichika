@@ -14,6 +14,10 @@ const tableroPredefinido = [
   [{region: 10}, {region: 10}, {region: 10}, {region: 10}, {region: 10}, {region: 10}]
 ];
 */
+function clonarTablero(tablero) {
+  return tablero.map(fila => fila.map(celda => ({ ...celda })));
+}
+
 
 function obtenerTodasLasFlechas(tablero) {
   const flechas = [];
@@ -114,6 +118,79 @@ function asignarFlechasSolucion(tablero, pareja) {
   return true;
 }
 
+function clonarYEliminarPistasEnRegiones(tableroBase, regionesARemover) {
+  return tableroBase.map(fila =>
+    fila.map(celda => {
+      const nueva = { ...celda };
+      if (regionesARemover.has(celda.region) && celda.flecha) {
+        nueva.flecha = '';
+        nueva.fija = false;
+      }
+      return nueva;
+    })
+  );
+}
+
+function combinar(arr, k) {
+  const resultados = [];
+  const n = arr.length;
+  function backtrack(start, combo) {
+    if (combo.length === k) {
+      resultados.push(combo.slice());
+      return;
+    }
+    for (let i = start; i < n; i++) {
+      combo.push(arr[i]);
+      backtrack(i + 1, combo);
+      combo.pop();
+    }
+  }
+  backtrack(0, []);
+  return resultados;
+}
+
+function hallarEliminacionMinima(tableroBase, regionesArray, contarSoluciones) {
+  const N = regionesArray.length;
+  // Podrías verificar primero que el tablero base tiene única solución:
+  // if (contarSoluciones(tableroBase, 2) !== 1) console.warn("El tablero base no es único según el solver");
+  for (let k = 1; k <= N; k++) {
+    const combos = combinar(regionesArray, k);
+    for (const combo of combos) {
+      const setRemover = new Set(combo);
+      const tableroPrueba = clonarYEliminarPistasEnRegiones(tableroBase, setRemover);
+      const solCount = contarSoluciones(tableroPrueba, 2);
+      if (solCount === 1) {
+        return combo.slice(); // devolvemos la combinación mínima de tamaño k
+      }
+    }
+    // si ninguna de tamaño k funciona, seguimos con k+1
+  }
+  return null; // no es posible quitar pistas de estas regiones sin romper unicidad
+}
+
+function eliminarGreedy(tableroBase, regionesArray, contarSoluciones) {
+  const eliminadas = new Set();
+  let progreso = true;
+  while (progreso) {
+    progreso = false;
+    for (const r of regionesArray) {
+      if (eliminadas.has(r)) continue;
+      // Intentar quitar r junto con las ya eliminadas
+      const setRemover = new Set(eliminadas);
+      setRemover.add(r);
+      const tableroPrueba = clonarYEliminarPistasEnRegiones(tableroBase, setRemover);
+      const solCount = contarSoluciones(tableroPrueba, 2);
+      if (solCount === 1) {
+        // Podemos quitar la pista de r sin romper unicidad
+        eliminadas.add(r);
+        progreso = true;
+        break; // reiniciar el bucle para reevaluar con nuevo conjunto
+      }
+    }
+  }
+  return Array.from(eliminadas);
+}
+
 export function generarTableroConUnicaSolucion(filas, columnas, numRegiones) {
   while (true) {
     const tablero = generarRegionesAleatorias(filas, columnas, numRegiones);
@@ -128,35 +205,78 @@ export function generarTableroConUnicaSolucion(filas, columnas, numRegiones) {
     let eliminado = true;
     while (eliminado) {
       eliminado = false;
-      const posiciones = obtenerTodasLasFlechas(tablero);
+      let posiciones = obtenerTodasLasFlechas(tablero);
       mezclarArray(posiciones);
-      for (const pos of posiciones) {
-        // Backup de la flecha
-        const backup = tablero[pos.y][pos.x].flecha;
-        // Intentamos eliminarla
-        tablero[pos.y][pos.x].flecha = '';
 
-        // Contamos soluciones hasta 2
-        const solCount = contarSoluciones(tablero, 2);
+      for (const pos of posiciones) {
+        const backup = tablero[pos.y][pos.x].flecha;
+        // Clonamos antes de probar
+        const tableroCopia = clonarTablero(tablero);
+        tableroCopia[pos.y][pos.x].flecha = '';
+        const solCount = contarSoluciones(tableroCopia, 2);
+
         if (solCount === 1) {
-          // Se mantiene eliminada y seguimos intentando
+          // Confirmar que realmente se quita en el original
+          tablero[pos.y][pos.x].flecha = '';
           eliminado = true;
+          console.log(`Eliminada flecha en (${pos.x},${pos.y}), solCount=1`);
         } else {
-          // Es necesaria, la restauramos
-          tablero[pos.y][pos.x].flecha = backup;
+          // No se elimina
+          // No hace falta restaurar en original porque no la tocamos aún
+          console.log(`Se mantiene flecha en (${pos.x},${pos.y}), solCount=${solCount}`);
         }
       }
     }
 
-    // Marcamos flechas finales como fijas
     for (let i = 0; i < filas; i++) {
       for (let j = 0; j < columnas; j++) {
         tablero[i][j].fija = !!tablero[i][j].flecha;
       }
     }
 
+    // ---------- Aquí empieza la parte de eliminación de regiones ----------
+
+    // 1) Recolectar IDs de regiones con pista:
+    const regionesConPista = new Set();
+    for (let i = 0; i < filas; i++) {
+      for (let j = 0; j < columnas; j++) {
+        if (tablero[i][j].fija) {
+          regionesConPista.add(tablero[i][j].region);
+        }
+      }
+    }
+    const regionesArray = Array.from(regionesConPista);
+
+    // 2) Elegir estrategia: exhaustiva si pocas regiones, sino greedy
+    const UMBRAL_EXHAUSTIVO = 10; // ajustable
+    let eliminadas;
+    if (regionesArray.length <= UMBRAL_EXHAUSTIVO) {
+      eliminadas = hallarEliminacionMinima(tablero, regionesArray, contarSoluciones);
+      if (eliminadas === null) {
+        // No se puede quitar ninguna sin romper unicidad
+        eliminadas = [];
+      }
+    } else {
+      eliminadas = eliminarGreedy(tablero, regionesArray, contarSoluciones);
+    }
+
+    // 3) Aplicar las eliminaciones:
+    if (eliminadas && eliminadas.length > 0) {
+      const setRemover = new Set(eliminadas);
+      const nuevoTablero = clonarYEliminarPistasEnRegiones(tablero, setRemover);
+      // Reemplazamos el tablero original por el modificado:
+      // Nota: esto borra las flechas y fija de esas regiones en tablero.
+      for (let i = 0; i < filas; i++) {
+        for (let j = 0; j < columnas; j++) {
+          tablero[i][j] = nuevoTablero[i][j];
+        }
+      }
+    }
+    // ---------- Fin de la parte de eliminación de regiones ----------
+
     return tablero;
   }
+
 }
 
 function generarRegionesAleatorias(filas, columnas, cantidadRegiones) {
@@ -262,7 +382,7 @@ const Tablero = ({ size, onTableroGenerado, onTableroChange, tableroInicial }) =
   };
 
   const generarTablero = useCallback(() => {
-    const pistasTablero = generarTableroConUnicaSolucion(size, size, 8);
+    const pistasTablero = generarTableroConUnicaSolucion(size, size, 10);
     return pistasTablero;
   }, [size]);
 

@@ -119,36 +119,18 @@ function TableroCasual() {
   
   useEffect(() => {
     if (!tableroGenerado.length) return;
-
-    // 1) Genera la solución completa (tiene todas las flechas)
-    const solucion = obtenerSolucion(tableroGenerado);
-
-    if (!solucion) {
-      if (intentos < MAX_INTENTOS - 1) {
-        setIntentos(i => i + 1);
-        setRegenKey(k => k + 1);
-      } else {
-        setCargando(false);
-        alert(`No hemos encontrado un tablero resoluble tras ${MAX_INTENTOS} intentos.`);
-        setIntentos(0);
-      }
-      return;
+  // 1) Genera la solución completa (tiene todas las flechas)
+  const solucion = obtenerSolucion(tableroGenerado);
+  if (!solucion) {
+    if (intentos < MAX_INTENTOS - 1) {
+      setIntentos(i => i + 1);
+      setRegenKey(k => k + 1);
+    } else {
+      alert(`No hemos encontrado un tablero resoluble tras ${MAX_INTENTOS} intentos.`);
+      // ...
     }
-
-    const numPistas = solucion.flat().filter(c => c.fija).length;
-    const MAX_PISTAS = 7;
-    const MIN_PISTAS = 4;
-    if (numPistas > MAX_PISTAS) {
-      if (intentos < MAX_INTENTOS - 1) {
-        setIntentos(i => i + 1);
-        setRegenKey(k => k + 1);
-      } else {
-        alert(`No hemos encontrado un tablero adecuado (≤${MAX_PISTAS} pistas) tras ${MAX_INTENTOS} intentos.`);
-        setCargando(false);
-        setIntentos(0);
-      }
-      return;
-    }
+    return;
+  }
 
     const tableroSinFlechasPeroConPistas = solucion.map(fila =>
       fila.map(celda => ({

@@ -1,5 +1,52 @@
 import React, { useState, useEffect } from 'react';
 
+function dirToDelta(dir) {
+  switch (dir) {
+    case '↑': return [-1, 0];
+    case '↓': return [1, 0];
+    case '←': return [0, -1];
+    case '→': return [0, 1];
+    default: return [0, 0];
+  }
+}
+
+function generarOpcionesParaRegion(rId, tablero, celdasPorRegion, adyRegiones, regionesAsignadas) {
+  const opciones = [];
+  const filas = tablero.length, cols = tablero[0].length;
+
+  for (const [i, j] of celdasPorRegion.get(rId)) {
+    if (tablero[i][j].flecha) continue; // pista fija o ya asignada
+    for (const dir1 of ['↑','↓','←','→']) {
+      const [dx, dy] = dirToDelta(dir1);
+      let x = i + dx, y = j + dy;
+      while (x >= 0 && x < filas && y >= 0 && y < cols) {
+        const cel = tablero[x][y];
+        if (cel.flecha) {
+          // puede ser pareja si:
+          const sId = cel.region;
+          if (sId !== rId && !regionesAsignadas.has(sId)
+              && cel.flecha === direccionOpuesta(dir1)
+              && !adyRegiones.get(rId).has(sId)) {
+            // además ya sabemos que entre i,j y x,y no hubo flecha intermedia, 
+            // pues ésta es la primera flecha encontrada.
+            opciones.push({ x1: i, y1: j, dir1, x2: x, y2: y, dir2: direccionOpuesta(dir1) });
+          }
+          break;
+        }
+        // si no hay flecha en (x,y), podría emparejar con esa celda si región distinta y no asignada:
+        const sId = cel.region;
+        if (sId !== rId && !regionesAsignadas.has(sId) && !adyRegiones.get(rId).has(sId)) {
+          // entre medio no hay flechas (porque no se rompió antes), OK:
+          opciones.push({ x1: i, y1: j, dir1, x2: x, y2: y, dir2: direccionOpuesta(dir1) });
+        }
+        x += dx; y += dy;
+      }
+    }
+  }
+  return opciones;
+}
+
+
 function buscarFlechaEnDireccion(tablero, f) {
   let { x, y, flecha } = f;
   let dx = 0, dy = 0;
@@ -102,129 +149,158 @@ function asignarFlechas(celdas, tablero) {
   }
   return ops;
 }
-
 export function contarSoluciones(tableroOriginal, maxCount = 2) {
-  const areas = encontrarAreas(tableroOriginal);
-  const rawAdy = calcularAdyacencias(tableroOriginal);
-  const adyacencias = new Map(
-    Object.entries(rawAdy).map(([r, v]) => [Number(r), v])
-  );
-
-  const regiones = Object.keys(areas)
-    .map(r => Number(r))
-    .filter(r => areas[r].every(([i, j]) => !tableroOriginal[i][j].flecha))
-    .sort((a, b) => areas[a].length - areas[b].length);
-
-  const opcionesInicial = new Map();
-  for (const r of regiones) {
-    const opts = asignarFlechas(areas[r], tableroOriginal);
-    if (!opts.length) return 0;
-    opcionesInicial.set(r, opts);
+  const filas = tableroOriginal.length, cols = tableroOriginal[0].length;
+  const areas = new Map();
+  for (let i = 0; i < filas; i++) {
+    for (let j = 0; j < cols; j++) {
+      const r = tableroOriginal[i][j].region;
+      if (!areas.has(r)) areas.set(r, []);
+      areas.get(r).push([i,j]);
+    }
   }
+  const rawAdy = calcularAdyacencias(tableroOriginal);
+  const adyRegiones = new Map();
+  for (const key in rawAdy) {
+    adyRegiones.set(Number(key), new Set(rawAdy[key]));
+  }
+  const pendientes = new Set();
+  for (const [r, celdas] of areas.entries()) {
+    const tieneF = celdas.some(([i,j]) => !!tableroOriginal[i][j].flecha);
+    if (!tieneF) pendientes.add(r);
+  }
+  const tablero = tableroOriginal.map(row => row.map(c => ({ ...c })));
+  let contador = 0;
 
-  const tableroAlg = tableroOriginal.map(row => row.map(c => ({ ...c })));
-  const pendientes = new Set(regiones);
-  let count = 0;
-
-  function dfs(tab, sinAsig, opciones) {
-    // 1) Si ya tenemos al menos maxCount, detenemos toda la búsqueda.
-    if (count >= maxCount) return;
-
-    // 2) Caso base: todas las regiones asignadas → validamos y contamos.
-    if (sinAsig.size === 0) {
-      if (esValida(tab)) {
-        count++;
+  function dfsContar(regPendientes) {
+    if (contador >= maxCount) return;
+    if (regPendientes.size === 0) {
+      if (esValida(tablero)) {
+        contador++;
       }
       return;
     }
-
-    // 3) Selección heurística de la región con menos opciones:
-    let region = null;
-    sinAsig.forEach(r => {
-      if (region === null) region = r;
-      else {
-        const a = opciones.get(r).length;
-        const b = opciones.get(region).length;
-        if (
-          a < b ||
-          (a === b && adyacencias.get(r).size > adyacencias.get(region).size)
-        ) {
-          region = r;
-        }
+    // MRV:
+    let mejorR = null, mejorOpts = null;
+    const regionesAsignadas = new Set([...areas.keys()].filter(rr => !regPendientes.has(rr)));
+    for (const r of regPendientes) {
+      const opts = generarOpcionesParaRegion(r, tablero, areas, adyRegiones, regionesAsignadas);
+      if (opts.length === 0) {
+        mejorR = r; mejorOpts = [];
+        break;
       }
-    });
-
-    sinAsig.delete(region);
-    for (const move of opciones.get(region)) {
-      const { x, y, flecha } = move;
-      const old = tab[x][y].flecha;
-      tab[x][y].flecha = flecha;
-
-      const nuevasOpc = new Map(opciones);
-      let podar = false;
-      [region, ...adyacencias.get(region)].forEach(r2 => {
-        if (podar) return;
-        const ops2 = asignarFlechas(areas[r2], tab);
-        if (!ops2.length) podar = true;
-        else nuevasOpc.set(r2, ops2);
-      });
-
-      if (!podar) dfs(tab, sinAsig, nuevasOpc);
-
-      // Restauramos y salimos si ya excedimos el umbral:
-      tab[x][y].flecha = old;
-      if (count >= maxCount) break;
+      if (mejorOpts == null || opts.length < mejorOpts.length) {
+        mejorR = r; mejorOpts = opts;
+      }
     }
-    sinAsig.add(region);
+    if (!mejorOpts || mejorOpts.length === 0) {
+      return;
+    }
+    regPendientes.delete(mejorR);
+    for (const opt of mejorOpts) {
+      if (contador >= maxCount) break;
+      const { x1, y1, dir1, x2, y2, dir2 } = opt;
+      const prev1 = tablero[x1][y1].flecha;
+      const prev2 = tablero[x2][y2].flecha;
+      tablero[x1][y1].flecha = dir1;
+      tablero[x2][y2].flecha = dir2;
+      const sId = tablero[x2][y2].region;
+      const quitS = regPendientes.has(sId);
+      if (quitS) regPendientes.delete(sId);
+      dfsContar(regPendientes);
+      if (quitS) regPendientes.add(sId);
+      tablero[x1][y1].flecha = prev1;
+      tablero[x2][y2].flecha = prev2;
+    }
+    regPendientes.add(mejorR);
   }
 
-  dfs(tableroAlg, pendientes, opcionesInicial);
-  return count;
+  dfsContar(pendientes);
+  return contador >= maxCount ? maxCount : contador;
 }
 
+
 export function obtenerSolucion(tableroOriginal) {
-  const areas = encontrarAreas(tableroOriginal);
-  const rawAdy = calcularAdyacencias(tableroOriginal);
-  const adyacencias = new Map(Object.entries(rawAdy).map(([r, v]) => [Number(r), v]));
-  const regiones = Object.keys(areas)
-    .map(r => Number(r))
-    .filter(r => areas[r].every(([i,j]) => !tableroOriginal[i][j].flecha))
-    .sort((a, b) => areas[a].length - areas[b].length);
-
-  const opcionesInicial = new Map();
-  for (const r of regiones) {
-    const opts = asignarFlechas(areas[r], tableroOriginal);
-    if (!opts.length) return null;
-    opcionesInicial.set(r, opts);
-  }
-
-  const tableroAlg = tableroOriginal.map(row => row.map(c => ({ ...c })));
-  const pendientes = new Set(regiones);
-
-  function dfsF(tab, sinAsig, opciones) {
-    if (!sinAsig.size) return esValida(tab);
-    let reg = [...sinAsig].sort((a,b) => opciones.get(a).length - opciones.get(b).length)[0];
-    sinAsig.delete(reg);
-    for (const m of opciones.get(reg)) {
-      const old = tab[m.x][m.y].flecha;
-      tab[m.x][m.y].flecha = m.flecha;
-      const opc2 = new Map(opciones);
-      let pod = false;
-      [reg, ...adyacencias.get(reg)].forEach(r2 => {
-        if (pod) return;
-        const rOps = asignarFlechas(areas[r2], tab);
-        if (!rOps.length) pod = true;
-        else opc2.set(r2, rOps);
-      });
-      if (!pod && dfsF(tab, sinAsig, opc2)) return true;
-      tab[m.x][m.y].flecha = old;
+  const filas = tableroOriginal.length;
+  const cols = tableroOriginal[0].length;
+  // 1) Construir areas por región:
+  const areas = new Map();
+  for (let i = 0; i < filas; i++) {
+    for (let j = 0; j < cols; j++) {
+      const r = tableroOriginal[i][j].region;
+      if (!areas.has(r)) areas.set(r, []);
+      areas.get(r).push([i,j]);
     }
-    sinAsig.add(reg);
+  }
+  // 2) Adyacencias de regiones:
+  const rawAdy = calcularAdyacencias(tableroOriginal);
+  const adyRegiones = new Map();
+  for (const key in rawAdy) {
+    const r = Number(key);
+    adyRegiones.set(r, new Set(rawAdy[key]));
+  }
+  // 3) Determinar regiones sin flecha (pendientes):
+  const pendientes = new Set();
+  for (const [r, celdas] of areas.entries()) {
+    const tieneF = celdas.some(([i,j]) => !!tableroOriginal[i][j].flecha);
+    if (!tieneF) pendientes.add(r);
+  }
+  // 4) Clonar tablero para trabajar:
+  const tablero = tableroOriginal.map(row => row.map(c => ({ ...c })));
+
+  function dfsAsignar(regPendientes) {
+    if (regPendientes.size === 0) {
+      // Todas asignadas, comprobamos validez total:
+      return esValida(tablero);
+    }
+    // MRV: elegir región con menos opciones:
+    let mejorR = null, mejorOpts = null;
+    // Para calcular regionesAsignadas:
+    const regionesAsignadas = new Set([...areas.keys()].filter(rr => !regPendientes.has(rr)));
+    for (const r of regPendientes) {
+      const opts = generarOpcionesParaRegion(r, tablero, areas, adyRegiones, regionesAsignadas);
+      if (opts.length === 0) {
+        mejorR = r; mejorOpts = [];
+        break;
+      }
+      if (mejorOpts == null || opts.length < mejorOpts.length) {
+        mejorR = r; mejorOpts = opts;
+      }
+    }
+    if (!mejorOpts || mejorOpts.length === 0) {
+      return false; // poda
+    }
+    // Probar asignaciones para mejorR
+    regPendientes.delete(mejorR);
+    // Recalcular regionesAsignadas tras quitar mejorR:
+    const regionesAsignadas2 = new Set([...areas.keys()].filter(rr => !regPendientes.has(rr)));
+    for (const opt of mejorOpts) {
+      const { x1, y1, dir1, x2, y2, dir2 } = opt;
+      const prev1 = tablero[x1][y1].flecha;
+      const prev2 = tablero[x2][y2].flecha;
+      tablero[x1][y1].flecha = dir1;
+      tablero[x2][y2].flecha = dir2;
+      // Quitar región pareja si estaba pendiente:
+      const sId = tablero[x2][y2].region;
+      const quitS = regPendientes.has(sId);
+      if (quitS) regPendientes.delete(sId);
+      // Recursión
+      if (dfsAsignar(regPendientes)) {
+        return true;
+      }
+      // Restaurar
+      if (quitS) regPendientes.add(sId);
+      tablero[x1][y1].flecha = prev1;
+      tablero[x2][y2].flecha = prev2;
+    }
+    regPendientes.add(mejorR);
     return false;
   }
 
-  return dfsF(tableroAlg, pendientes, opcionesInicial) ? tableroAlg : null;
+  const ok = dfsAsignar(pendientes);
+  return ok ? tablero : null;
 }
+
 
 export function Resolver({ tablero, onSolucionInvalida, onStartResolve, onEndResolve }) {
   const [solucion, setSolucion] = useState([]);
