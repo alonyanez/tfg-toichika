@@ -137,9 +137,16 @@ function TableroCompetitivo() {
     }
 
     
-    const limpio = solucion.map(f => f.map(c => ({ ...c, flecha: '' })));
-    const tableroInicial = filtrarFlechaRegionMasGrande(solucion, 4);
-    setTableroAMostrar(tableroInicial);
+    const tableroSinFlechasPeroConPistas = solucion.map(fila =>
+      fila.map(celda => ({
+        ...celda,
+        flecha: '',   // oculta la flecha visual
+        // fijar: dejamos celda.fija como venía (true si era pista en la solución mínima).
+        // Si quisieras forzar que todas las pistas mantengan fija=true:
+        fija: celda.fija === true   // o simplemente `celda.fija`, asumiendo que solución marcó correctamente
+      }))
+    );
+    setTableroAMostrar(tableroSinFlechasPeroConPistas);
     setTableroListo(true);
     setCargandoTablero(false);
     setCorriendo(true);
