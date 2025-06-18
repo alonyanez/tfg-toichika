@@ -135,17 +135,30 @@ function TableroCasual() {
       return;
     }
 
-     const tableroSinFlechasPeroConPistas = solucion.map(fila =>
-    fila.map(celda => ({
-      ...celda,
-      flecha: '',   // oculta la flecha visual
-      // fijar: dejamos celda.fija como venía (true si era pista en la solución mínima).
-      // Si quisieras forzar que todas las pistas mantengan fija=true:
-      fija: celda.fija === true   // o simplemente `celda.fija`, asumiendo que solución marcó correctamente
-    }))
-  );
+    const numPistas = solucion.flat().filter(c => c.fija).length;
+    const MAX_PISTAS = 6;
+    const MIN_PISTAS = 3;
+    if (numPistas > MAX_PISTAS || numPistas <  MIN_PISTAS) {
+      // Descarta este tablero y regenera de nuevo
+      if (intentos < MAX_INTENTOS - 1) {
+        setIntentos(i => i + 1);
+        setRegenKey(k => k + 1);
+      } else {
+        alert(`No hemos encontrado un tablero adecuado (≤${MAX_PISTAS} pistas) tras ${MAX_INTENTOS} intentos.`);
+        setCargando(false);
+        setIntentos(0);
+      }
+      return;
+    }
 
-  // 3) Actualizamos estados
+    const tableroSinFlechasPeroConPistas = solucion.map(fila =>
+      fila.map(celda => ({
+        ...celda,
+        flecha: '',
+        fija: celda.fija === true
+      }))
+    );
+
   setTableroAMostrar(tableroSinFlechasPeroConPistas);
   setTableroState(tableroSinFlechasPeroConPistas);
   // Guardamos la solución completa (con flechas) para mostrar luego si es necesario:
