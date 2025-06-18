@@ -1,20 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './Tablero.css';
-import { calcularAdyacencias, contarSoluciones, obtenerSolucion } from '../Resolver/ResolverToichika.js'
+import { calcularAdyacencias, contarSoluciones} from '../Resolver/ResolverToichika.js'
 
 const FLECHAS = ['↑', '→', '↓', '←', ''];
 
-/*const tableroPredefinido = [
-  [{region: 0}, {region: 0}, {region: 0}, {region: 0}, {region: 0}, {region: 1}],
-  [{region: 3}, {region: 4}, {region: 4}, {region: 4}, {region: 4}, {region: 1}],
-  [{region: 3}, {region: 4}, {region: 5}, {region: 5}, {region: 5}, {region: 1}],
-  [{region: 3}, {region: 6}, {region: 6}, {region: 6}, {region: 6}, {region: 1}],
-  [{region: 3}, {region: 7}, {region: 7}, {region: 7}, {region: 6}, {region: 1}],
-  [{region: 3}, {region: 2}, {region: 2}, {region: 2}, {region: 2}, {region: 2}]
-];
-*/
-
-/*const tableroPredefinido = [
+/*
+const tableroPredefinido = [
   [{region: 0}, {region: 1}, {region: 1}, {region: 2}, {region: 3}, {region: 3}],
   [{region: 0}, {region: 0}, {region: 4}, {region: 2}, {region: 2}, {region: 2}],
   [{region: 0}, {region: 5}, {region: 4}, {region: 4}, {region: 4}, {region: 2}],
@@ -23,9 +14,6 @@ const FLECHAS = ['↑', '→', '↓', '←', ''];
   [{region: 10}, {region: 10}, {region: 10}, {region: 10}, {region: 10}, {region: 10}]
 ];
 */
-function clonarTablero(tablero) {
-  return tablero.map(fila => fila.map(celda => ({ ...celda })));
-}
 
 function obtenerTodasLasFlechas(tablero) {
   const flechas = [];
@@ -47,68 +35,7 @@ function mezclarArray(array) {
   }
 }
 
-function esEmparejamientoUnico(pareja, adyacenciasRegiones) {
-  // Construir grafo complementario adyComp: mapa region -> Set(regiones no adyacentes)
-  const regiones = Object.keys(adyacenciasRegiones).map(r => Number(r));
-  const adyComp = {};
-  regiones.forEach(r => {
-    adyComp[r] = new Set();
-    regiones.forEach(s => {
-      if (s !== r && !adyacenciasRegiones[r].has(s)) {
-        adyComp[r].add(s);
-      }
-    });
-  });
-  // Ahora comprobar si el emparejamiento en adyComp es único: no hay ciclo alternante.
-  // Representamos el matching M: pareja[r] = s, pareja[s] = r.
-  const visitedStack = new Set();
-  // Vamos a intentar detectar ciclo alternante: 
-  // Para cada vértice iniciaremos una búsqueda alternante.
-  const regionesArr = regiones;
-  for (const start of regionesArr) {
-    // DFS alternante: estado = { nodo actual, paso: 0 o 1 }, 
-    // paso=0: busco arista fueraMatching, paso=1: busco arista enMatching.
-    const stack = [];
-    // Para evitar loops infinitos, guardamos (nodo, paso, origen) en visitedLocal
-    const visitedLocal = new Set();
-    stack.push({ node: start, paso: 0, origen: start });
-    while (stack.length) {
-      const { node, paso, origen } = stack.pop();
-      const key = `${node},${paso},${origen}`;
-      if (visitedLocal.has(key)) continue;
-      visitedLocal.add(key);
-      if (paso === 0) {
-        // Debemos tomar arista fueraMatching en adyComp: es decir, vecinos v en adyComp[node] 
-        // que NO sean pareja[node].
-        for (const v of adyComp[node]) {
-          if (pareja[node] === v) continue; // esta es arista enMatching, no la tomamos aquí
-          // Avanzamos al siguiente paso buscando arista enMatching
-          stack.push({ node: v, paso: 1, origen });
-        }
-      } else {
-        // paso === 1: buscamos arista enMatching: es decir, unique pareja de 'node'
-        const p = pareja[node];
-        if (p == null) continue; // no emparejada, pero en emparejamiento perfecto no debería suceder
-        // Si p es el origen y ciclo de longitud >= 4: hemos encontrado ciclo alternante
-        // Para verificar longitud >= 4: podríamos llevar un contador de pasos, pero 
-        // dado que alternamos paso 0 y 1, y aseguramos no volver inmediatamente, 
-        // una forma simple es que si p === origen en un paso 1 y no es la primera expansión, 
-        // lo consideramos ciclo de longitud al menos 2 aristas enMatching+fueraMatching.
-        if (p === origen) {
-          // encontrado ciclo alternante: emparejamiento no único
-          return false;
-        }
-        // Sino, seguimos la búsqueda con paso 0:
-        stack.push({ node: p, paso: 0, origen });
-      }
-    }
-  }
-  // Si para ningún vértice encontramos ciclo alternante, el matching es único.
-  return true;
-}
-
-
-function apareamientoNoAdyacente(adyacencias) {
+function emparejamientoNoAdyacente(adyacencias) {
   const regiones = Object.keys(adyacencias).map(n => parseInt(n));
   const disponibles = new Set(regiones);
   const pareja = {};
@@ -187,60 +114,50 @@ function asignarFlechasSolucion(tablero, pareja) {
   return true;
 }
 
-export function generarTableroSoluble(filas, columnas, cantidadRegiones) {
-  while (true) {
-    const tablero = generarRegionesAleatorias(filas, columnas, cantidadRegiones);
-    const ady = calcularAdyacencias(tablero);
-    const pareja = apareamientoNoAdyacente(ady);
-    if(esEmparejamientoUnico(pareja,ady)) continue;
-    if (!pareja) continue;      
-    if (!asignarFlechasSolucion(tablero, pareja)) continue;
-    return tablero;
-  }
-}
-
 export function generarTableroConUnicaSolucion(filas, columnas, numRegiones) {
   while (true) {
     const tablero = generarRegionesAleatorias(filas, columnas, numRegiones);
     const ady = calcularAdyacencias(tablero);
-    const parejas = apareamientoNoAdyacente(ady);
+    const parejas = emparejamientoNoAdyacente(ady);
     if (!parejas) continue;
 
     // Asignamos solución completa
     if (!asignarFlechasSolucion(tablero, parejas)) continue;
 
-    // Eliminamos flechas mientras la unicidad persista
-    const posicionesConFlechas = obtenerTodasLasFlechas(tablero); // [{x, y, flecha}, ...]
-    mezclarArray(posicionesConFlechas);
+    // Eliminación eficiente: eliminación iterativa (greedy)
+    let eliminado = true;
+    while (eliminado) {
+      eliminado = false;
+      const posiciones = obtenerTodasLasFlechas(tablero);
+      mezclarArray(posiciones);
+      for (const pos of posiciones) {
+        // Backup de la flecha
+        const backup = tablero[pos.y][pos.x].flecha;
+        // Intentamos eliminarla
+        tablero[pos.y][pos.x].flecha = '';
 
-    for (const pos of posicionesConFlechas) {
-      const backup = tablero[pos.y][pos.x].flecha;
-      tablero[pos.y][pos.x].flecha = '';
-
-      const numSoluciones = contarSoluciones(tablero, 2);
-      if (numSoluciones !== 1) {
-        tablero[pos.y][pos.x].flecha = backup;
-        //continue;
+        // Contamos soluciones hasta 2
+        const solCount = contarSoluciones(tablero, 2);
+        if (solCount === 1) {
+          // Se mantiene eliminada y seguimos intentando
+          eliminado = true;
+        } else {
+          // Es necesaria, la restauramos
+          tablero[pos.y][pos.x].flecha = backup;
+        }
       }
     }
 
-    // Al terminar, marcamos las flechas restantes como fijas (pistas mínimas)
+    // Marcamos flechas finales como fijas
     for (let i = 0; i < filas; i++) {
       for (let j = 0; j < columnas; j++) {
-        const celda = tablero[i][j];
-        if (celda.flecha) {
-          celda.fija = true;
-        } else {
-          // opcional: aseguramos que no quede undefined
-          celda.fija = false;
-        }
+        tablero[i][j].fija = !!tablero[i][j].flecha;
       }
     }
 
     return tablero;
   }
 }
-
 
 function generarRegionesAleatorias(filas, columnas, cantidadRegiones) {
   const tablero = Array.from({ length: filas }, () =>
@@ -420,36 +337,15 @@ const Tablero = ({ size, onTableroGenerado, onTableroChange, tableroInicial }) =
               justifyContent: 'center',
               fontSize: 24,
               backgroundColor: fondo,
-              // A continuación añadimos condicionalmente el borde
               ...(esPista
-                // Opción 1: reemplazar completamente con borde verde de 3px
-                //? { border: '3px solid pink' }
-                // Opción 2: si prefieres conservar el borde negro de región y añadir un borde verde interior,
-                // puedes descomentar la línea de abajo y comentar la opción anterior:
                  ? {
                      borderTop: borde.borderTop,
                      borderRight: borde.borderRight,
                      borderBottom: borde.borderBottom,
                      borderLeft: borde.borderLeft,
                      boxShadow: 'inset 0 0 0 4px green' // borde interior verde de 2px
-                }
-                // Opción 3: si prefieres un borde negro exterior y un “outline” verde (fuera):
-                // ? {
-                //     borderTop: borde.borderTop,
-                //     borderRight: borde.borderRight,
-                //     borderBottom: borde.borderBottom,
-                //     borderLeft: borde.borderLeft,
-                //     outline: '2px solid green', // nota: outline no ocupa espacio de layout
-                //   }
-                // Opción 4: simplemente colorear todos los lados de verde, reemplazando el negro:
-                // ? {
-                //     borderTop: '3px solid green',
-                //     borderRight: '3px solid green',
-                //     borderBottom: '3px solid green',
-                //     borderLeft: '3px solid green'
-                //   }
+                  }
                 : {
-                    // Caso no pista: usar borde calculado según región
                     borderTop: borde.borderTop,
                     borderRight: borde.borderRight,
                     borderBottom: borde.borderBottom,

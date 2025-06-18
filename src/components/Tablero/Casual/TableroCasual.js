@@ -136,10 +136,9 @@ function TableroCasual() {
     }
 
     const numPistas = solucion.flat().filter(c => c.fija).length;
-    const MAX_PISTAS = 6;
-    const MIN_PISTAS = 3;
-    if (numPistas > MAX_PISTAS || numPistas <  MIN_PISTAS) {
-      // Descarta este tablero y regenera de nuevo
+    const MAX_PISTAS = 7;
+    const MIN_PISTAS = 4;
+    if (numPistas > MAX_PISTAS) {
       if (intentos < MAX_INTENTOS - 1) {
         setIntentos(i => i + 1);
         setRegenKey(k => k + 1);
@@ -161,7 +160,6 @@ function TableroCasual() {
 
   setTableroAMostrar(tableroSinFlechasPeroConPistas);
   setTableroState(tableroSinFlechasPeroConPistas);
-  // Guardamos la solución completa (con flechas) para mostrar luego si es necesario:
   setTableroSolucion(solucion);
 
     setTableroListo(true);
