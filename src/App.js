@@ -41,9 +41,9 @@ function App() {
           </nav>
 
         <Routes>
-          <Route path="/tfg-toichika/casual" element={<TableroCasual />} />
-          <Route path="/tfg-toichika/competitivo" element={<TableroCompetitivo />} />
-          <Route path="/tfg-toichika/ranking" element={<Ranking />} />
+          <Route path="/casual" element={<TableroCasual />} />
+          <Route path="/competitivo" element={<TableroCompetitivo />} />
+          <Route path="/ranking" element={<Ranking />} />
           <Route path="*"  element={<TableroCasual />} />
         </Routes>
       </div>
