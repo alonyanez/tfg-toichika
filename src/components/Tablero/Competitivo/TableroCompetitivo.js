@@ -136,21 +136,7 @@ function TableroCompetitivo() {
       return;
     }
 
-    const numPistas = solucion.flat().filter(c => c.fija).length;
-    const MAX_PISTAS = 5;
-    if (numPistas > MAX_PISTAS) {
-      if (intentos < MAX_INTENTOS - 1) {
-        setIntentos(i => i + 1);
-        setRegenKey(k => k + 1);
-      } else {
-        alert(`No hemos encontrado un tablero adecuado (≤${MAX_PISTAS} pistas) tras ${MAX_INTENTOS} intentos.`);
-        setCargandoTablero(false);
-        setIntentos(0);
-      }
-      return;
-    }
 
-    
     const tableroSinFlechasPeroConPistas = solucion.map(fila =>
       fila.map(celda => ({
         ...celda,
