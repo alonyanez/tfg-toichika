@@ -207,6 +207,7 @@ function TableroCasual() {
           <h2 style={{ textAlign: 'center'}}>Reglas de Toichika</h2>
           <ol>
             <li>Sólo puede haber una flecha por región.</li>
+            <li>Los marcos verdes señalan la posición de una flecha.</li>
             <li>Cada flecha tiene una pareja, que se apuntan entre sí.</li>
             <li>Los pares de flechas no pueden estar en regiones adyacentes.</li>
             <li>No puede haber ninguna flecha en medio de un par de flechas.</li>
