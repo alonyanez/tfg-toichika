@@ -167,6 +167,85 @@ function hallarEliminacionMinima(tableroBase, regionesArray, contarSoluciones) {
   return null;
 }
 
+function eliminarMinimoConFiltrado(tableroBase, regionesArray, contarSoluciones, maxCandidates = 12, maxLevel = 4) {
+  // 1. Filtrar regiones removibles individualmente
+  const candidatos = [];
+  for (const r of regionesArray) {
+    const tableroPrueba = clonarYEliminarPistasEnRegiones(tableroBase, new Set([r]));
+    const solCount = contarSoluciones(clonarTablero(tableroPrueba), 2);
+    if (solCount === 1) {
+      candidatos.push(r);
+    }
+    // Si solCount !== 1, r no es removible individualmente, descartamos.
+  }
+  // Si no hay candidatos, no es posible quitar ninguna sin romper unicidad.
+  if (candidatos.length === 0) {
+    return [];
+  }
+  // Si son pocos, podemos hacer búsqueda incremental por niveles.
+  if (candidatos.length <= maxCandidates) {
+    // Opcional: ordenar candidatos por heurística (p.ej. tamaño de región ascendente o descendente)
+    // Aquí asumo que tienes un mapa tamañoPorRegion[r], calculado previamente:
+    // candidatos.sort((a,b) => tamañoPorRegion[a] - tamañoPorRegion[b]);
+
+    // 2. Búsqueda incremental: combos de tamaño 1..maxLevel (o hasta candidatos.length)
+    const N = candidatos.length;
+    const limite = Math.min(N, maxLevel);
+    for (let k = 1; k <= limite; k++) {
+      const combos = combinar(candidatos, k);
+      for (const combo of combos) {
+        const setRem = new Set(combo);
+        const tableroPrueba = clonarYEliminarPistasEnRegiones(tableroBase, setRem);
+        const solCount = contarSoluciones(clonarTablero(tableroPrueba), 2);
+        if (solCount === 1) {
+          // Validar extra
+          const validAgain = contarSoluciones(clonarTablero(tableroPrueba), 2);
+          if (validAgain === 1) {
+            return combo.slice();
+          } else {
+            console.error('Inconsistencia: solver dijo 1 pero validación dio', validAgain, 'para combo', combo);
+            // No devolvemos; seguimos buscando o debuggear solver.
+          }
+        }
+      }
+      // Si no encontramos en nivel k, pasamos a k+1
+    }
+    // Si aquí no se encontró combinación de tamaño ≤ maxLevel, podríamos:
+    // - O bien aumentar maxLevel si el número de candidatos no es muy grande,
+    // - O bien caer en greedy sobre candidatos.
+    // Decidimos fallback greedy:
+  }
+
+  // 3. Fallback greedy sobre candidatos filtrados
+  const eliminadas = new Set();
+  let progreso = true;
+  // Ordenar candidatos si quieres heurística: p.ej. por tamaño
+  // candidatos.sort(...);
+  while (progreso) {
+    progreso = false;
+    for (const r of candidatos) {
+      if (eliminadas.has(r)) continue;
+      const setRem = new Set(eliminadas);
+      setRem.add(r);
+      const tableroPrueba = clonarYEliminarPistasEnRegiones(tableroBase, setRem);
+      const solCount = contarSoluciones(clonarTablero(tableroPrueba), 2);
+      if (solCount === 1) {
+        // Validación extra
+        const validAgain = contarSoluciones(clonarTablero(tableroPrueba), 2);
+        if (validAgain === 1) {
+          eliminadas.add(r);
+          progreso = true;
+          break; // reiniciar bucle con nueva eliminada
+        } else {
+          console.error('Solver inconsistente en greedy para región', r, 'validAgain=', validAgain);
+          // No la añadimos, continuamos con otro r.
+        }
+      }
+    }
+  }
+  return Array.from(eliminadas);
+}
+
 function eliminarGreedy(tableroBase, regionesArray, contarSoluciones) {
   const eliminadas = new Set();
   let progreso = true;
@@ -234,8 +313,24 @@ export function generarTableroConUnicaSolucion(filas, columnas, numRegiones) {
     }
     const regionesArray = Array.from(regionesConPista);
 
-    const UMBRAL_EXHAUSTIVO = 10; 
-    let eliminadas;
+    const UMBRAL_EXHAUSTIVO = 50; 
+    let eliminadas = eliminarMinimoConFiltrado(tablero, regionesArray, contarSoluciones, 12, 3);
+      if (eliminadas && eliminadas.length > 0) {
+        const setRem = new Set(eliminadas);
+        const nuevoTablero = clonarYEliminarPistasEnRegiones(tablero, setRem);
+        // Validar final...
+        const finalCount = contarSoluciones(clonarTablero(nuevoTablero), 2);
+        if (finalCount === 1) {
+          // Aplicar
+          for (let i = 0; i < filas; i++) {
+            for (let j = 0; j < columnas; j++) {
+              tablero[i][j] = nuevoTablero[i][j];
+            }
+          }
+        } else {
+          console.error('No se aplican eliminaciones tras validación final, solCount=', finalCount);
+        }
+}
     if (regionesArray.length <= UMBRAL_EXHAUSTIVO) {
       eliminadas = hallarEliminacionMinima(tablero, regionesArray, contarSoluciones);
       if (eliminadas === null) {
@@ -364,7 +459,7 @@ const Tablero = ({ size, onTableroGenerado, onTableroChange, tableroInicial }) =
   };
 
   const generarTablero = useCallback(() => {
-    const pistasTablero = generarTableroConUnicaSolucion(size, size, 8);
+    const pistasTablero = generarTableroConUnicaSolucion(size, size, 10);
     return pistasTablero;
   }, [size]);
 
