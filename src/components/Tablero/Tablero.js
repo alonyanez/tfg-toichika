@@ -14,10 +14,11 @@ const tableroPredefinido = [
   [{region: 10}, {region: 10}, {region: 10}, {region: 10}, {region: 10}, {region: 10}]
 ];
 */
+
+
 function clonarTablero(tablero) {
   return tablero.map(fila => fila.map(celda => ({ ...celda })));
 }
-
 
 function obtenerTodasLasFlechas(tablero) {
   const flechas = [];
@@ -60,7 +61,7 @@ function emparejamientoNoAdyacente(adyacencias) {
     disponibles.delete(r);
     disponibles.delete(partner);
   }
-  return pareja; // mapa r → partner
+  return pareja; 
 }
 
 function asignarFlechasSolucion(tablero, pareja) {
@@ -151,8 +152,6 @@ function combinar(arr, k) {
 
 function hallarEliminacionMinima(tableroBase, regionesArray, contarSoluciones) {
   const N = regionesArray.length;
-  // Podrías verificar primero que el tablero base tiene única solución:
-  // if (contarSoluciones(tableroBase, 2) !== 1) console.warn("El tablero base no es único según el solver");
   for (let k = 1; k <= N; k++) {
     const combos = combinar(regionesArray, k);
     for (const combo of combos) {
@@ -160,12 +159,12 @@ function hallarEliminacionMinima(tableroBase, regionesArray, contarSoluciones) {
       const tableroPrueba = clonarYEliminarPistasEnRegiones(tableroBase, setRemover);
       const solCount = contarSoluciones(tableroPrueba, 2);
       if (solCount === 1) {
-        return combo.slice(); // devolvemos la combinación mínima de tamaño k
+        return combo.slice();
       }
     }
-    // si ninguna de tamaño k funciona, seguimos con k+1
+
   }
-  return null; // no es posible quitar pistas de estas regiones sin romper unicidad
+  return null;
 }
 
 function eliminarGreedy(tableroBase, regionesArray, contarSoluciones) {
@@ -175,16 +174,14 @@ function eliminarGreedy(tableroBase, regionesArray, contarSoluciones) {
     progreso = false;
     for (const r of regionesArray) {
       if (eliminadas.has(r)) continue;
-      // Intentar quitar r junto con las ya eliminadas
       const setRemover = new Set(eliminadas);
       setRemover.add(r);
       const tableroPrueba = clonarYEliminarPistasEnRegiones(tableroBase, setRemover);
       const solCount = contarSoluciones(tableroPrueba, 2);
       if (solCount === 1) {
-        // Podemos quitar la pista de r sin romper unicidad
         eliminadas.add(r);
         progreso = true;
-        break; // reiniciar el bucle para reevaluar con nuevo conjunto
+        break; 
       }
     }
   }
@@ -198,10 +195,7 @@ export function generarTableroConUnicaSolucion(filas, columnas, numRegiones) {
     const parejas = emparejamientoNoAdyacente(ady);
     if (!parejas) continue;
 
-    // Asignamos solución completa
     if (!asignarFlechasSolucion(tablero, parejas)) continue;
-
-    // Eliminación eficiente: eliminación iterativa (greedy)
     let eliminado = true;
     while (eliminado) {
       eliminado = false;
@@ -210,21 +204,17 @@ export function generarTableroConUnicaSolucion(filas, columnas, numRegiones) {
 
       for (const pos of posiciones) {
         const backup = tablero[pos.y][pos.x].flecha;
-        // Clonamos antes de probar
         const tableroCopia = clonarTablero(tablero);
         tableroCopia[pos.y][pos.x].flecha = '';
         const solCount = contarSoluciones(tableroCopia, 2);
 
         if (solCount === 1) {
-          // Confirmar que realmente se quita en el original
           tablero[pos.y][pos.x].flecha = '';
           eliminado = true;
-          console.log(`Eliminada flecha en (${pos.x},${pos.y}), solCount=1`);
-        } else {
-          // No se elimina
-          // No hace falta restaurar en original porque no la tocamos aún
-          console.log(`Se mantiene flecha en (${pos.x},${pos.y}), solCount=${solCount}`);
-        }
+          //console.log(`Eliminada flecha en (${pos.x},${pos.y}), solCount=1`);
+        } //else {
+          //console.log(`Se mantiene flecha en (${pos.x},${pos.y}), solCount=${solCount}`);
+        // }
       }
     }
 
@@ -234,9 +224,6 @@ export function generarTableroConUnicaSolucion(filas, columnas, numRegiones) {
       }
     }
 
-    // ---------- Aquí empieza la parte de eliminación de regiones ----------
-
-    // 1) Recolectar IDs de regiones con pista:
     const regionesConPista = new Set();
     for (let i = 0; i < filas; i++) {
       for (let j = 0; j < columnas; j++) {
@@ -247,32 +234,27 @@ export function generarTableroConUnicaSolucion(filas, columnas, numRegiones) {
     }
     const regionesArray = Array.from(regionesConPista);
 
-    // 2) Elegir estrategia: exhaustiva si pocas regiones, sino greedy
-    const UMBRAL_EXHAUSTIVO = 10; // ajustable
+    const UMBRAL_EXHAUSTIVO = 10; 
     let eliminadas;
     if (regionesArray.length <= UMBRAL_EXHAUSTIVO) {
       eliminadas = hallarEliminacionMinima(tablero, regionesArray, contarSoluciones);
       if (eliminadas === null) {
-        // No se puede quitar ninguna sin romper unicidad
         eliminadas = [];
       }
     } else {
       eliminadas = eliminarGreedy(tablero, regionesArray, contarSoluciones);
     }
 
-    // 3) Aplicar las eliminaciones:
     if (eliminadas && eliminadas.length > 0) {
       const setRemover = new Set(eliminadas);
       const nuevoTablero = clonarYEliminarPistasEnRegiones(tablero, setRemover);
-      // Reemplazamos el tablero original por el modificado:
-      // Nota: esto borra las flechas y fija de esas regiones en tablero.
       for (let i = 0; i < filas; i++) {
         for (let j = 0; j < columnas; j++) {
           tablero[i][j] = nuevoTablero[i][j];
         }
       }
     }
-    // ---------- Fin de la parte de eliminación de regiones ----------
+
 
     return tablero;
   }
@@ -442,7 +424,6 @@ const Tablero = ({ size, onTableroGenerado, onTableroChange, tableroInicial }) =
             const borde = getBordeEstilo(x, y);
             const esPista = celda.fija;
 
-            // Color de fondo: más oscuro si es pista, más claro si no
             const fondo = esPista
               ? `hsl(${celda.region * 30}, 80%, 75%)`
               : `hsl(${celda.region * 30}, 80%, 75%)`;
@@ -463,7 +444,7 @@ const Tablero = ({ size, onTableroGenerado, onTableroChange, tableroInicial }) =
                      borderRight: borde.borderRight,
                      borderBottom: borde.borderBottom,
                      borderLeft: borde.borderLeft,
-                     boxShadow: 'inset 0 0 0 4px green' // borde interior verde de 2px
+                     boxShadow: 'inset 0 0 0 4px green'
                   }
                 : {
                     borderTop: borde.borderTop,

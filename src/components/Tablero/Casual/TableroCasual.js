@@ -50,7 +50,7 @@ export function filtrarFlechaRegionMasGrande(fullTablero, nPistas = 2) {
       return {
         region: c.region,
         flecha: pista ? pista.flecha : '',
-        fija: !!pista   // true si es flecha de pista
+        fija: !!pista 
       };
     })
   );
@@ -119,7 +119,6 @@ function TableroCasual() {
   
   useEffect(() => {
     if (!tableroGenerado.length) return;
-  // 1) Genera la solución completa (tiene todas las flechas)
   const solucion = obtenerSolucion(tableroGenerado);
   if (!solucion) {
     if (intentos < MAX_INTENTOS - 1) {
@@ -127,7 +126,6 @@ function TableroCasual() {
       setRegenKey(k => k + 1);
     } else {
       alert(`No hemos encontrado un tablero resoluble tras ${MAX_INTENTOS} intentos.`);
-      // ...
     }
     return;
   }

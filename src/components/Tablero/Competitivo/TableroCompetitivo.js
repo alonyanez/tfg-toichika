@@ -70,7 +70,7 @@ function TableroCompetitivo() {
   const MAX_INTENTOS = 500;
 
 
-  const [solucionState, setSolucionState] = useState(null);
+  //const [solucionState, setSolucionState] = useState(null);
 
   const [tiempo, setTiempo] = useState(0);
   const [corriendo, setCorriendo] = useState(false);
@@ -105,13 +105,6 @@ function TableroCompetitivo() {
     setCargandoTablero(true);
 
     setRegenKey(k => k + 1);
-  };
-
-  const handlePause = () => setCorriendo(false);
-
-  const handleReset = () => {
-    setCorriendo(false);
-    setTiempo(0);
   };
 
   const onGenerado = useCallback(tab => {
@@ -158,22 +151,41 @@ function TableroCompetitivo() {
 
   const comprobar = () => {
     setCorriendo(false);
-    const flechas = tableroState.flat().filter(c => c.flecha).length;
-    const regiones = Object.keys(encontrarAreas(tableroState)).length;
-    if (flechas < regiones) {
+    if (!Array.isArray(tableroState) || tableroState.length === 0) {
+
+      const regiones = Object.keys(encontrarAreas(tableroState)).length;
       setCorriendo(true);
-      return alert(`Debes colocar ${regiones} flechas. Llevas ${flechas}.`);
+      return alert(`Debes colocar ${regiones} flechas.`);
+
+    }else{
+      const flechas = tableroState.flat().filter(c => c.flecha).length;
+      const regiones = Object.keys(encontrarAreas(tableroState)).length;
+
+      if (flechas < regiones) {
+        setCorriendo(true);
+        return alert(`Debes colocar ${regiones} flechas. Llevas ${flechas}.`);
+      }
+      const valido = esValida(tableroState);
+      const score = Math.max(0, 5000 - tiempo * 20);
+      if (valido) {
+        const e = { name: playerName || 'Anon', score, time: formato(), date: new Date().toISOString() };
+        setScores(s => [...s, e]);
+        alert(`¡Válido! Tiempo: ${formato()}. Puntos: ${score}`);
+      } else {
+        setCorriendo(true);
+        alert(`¡Inválido!`);
+      }
     }
-    const valido = esValida(tableroState);
-    const score = Math.max(0, 5000 - tiempo * 20);
-    if (valido) {
-      const e = { name: playerName || 'Anon', score, time: formato(), date: new Date().toISOString() };
-      setScores(s => [...s, e]);
-      alert(`¡Válido! Tiempo: ${formato()}. Puntos: ${score}`);
-    } else {
-      setCorriendo(true);
-      alert(`¡Inválido!`);
-    }
+  };
+
+  /*
+
+  
+  const handlePause = () => setCorriendo(false);
+
+  const handleReset = () => {
+    setCorriendo(false);
+    setTiempo(0);
   };
 
   const handlePista = () => {
@@ -194,7 +206,7 @@ function TableroCompetitivo() {
     });
     setTiempo(t => t + 30);
   };
-
+*/
   return (
     <div style={{
           maxWidth: '500px',
