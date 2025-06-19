@@ -155,7 +155,7 @@ function TableroCompetitivo() {
 
       const regiones = Object.keys(encontrarAreas(tableroState)).length;
       setCorriendo(true);
-      return alert(`Debes colocar ${regiones} flechas.`);
+      return alert(`Debes colocar 10 flechas. Llevas 0.`);
 
     }else{
       const flechas = tableroState.flat().filter(c => c.flecha).length;
