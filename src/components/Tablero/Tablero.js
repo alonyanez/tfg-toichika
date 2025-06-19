@@ -364,7 +364,7 @@ const Tablero = ({ size, onTableroGenerado, onTableroChange, tableroInicial }) =
   };
 
   const generarTablero = useCallback(() => {
-    const pistasTablero = generarTableroConUnicaSolucion(size, size, 10);
+    const pistasTablero = generarTableroConUnicaSolucion(size, size, 8);
     return pistasTablero;
   }, [size]);
 
